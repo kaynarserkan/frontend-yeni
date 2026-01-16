@@ -74,11 +74,11 @@ const onSubmit = async () => {
         <!-- MOBILE HERO (md altı) -->
         <v-col cols="12" class="d-md-none">
           <div class="mobile-hero">
-            <div class="mobile-hero__overlay">
-              <div class="mobile-hero__title">
+            <div class="hero-overlay hero-overlay--mobile">
+              <div class="hero-title hero-title--mobile">
                 Bring your ideas to life
               </div>
-              <div class="mobile-hero__subtitle">
+              <div class="hero-subtitle hero-subtitle--mobile">
                 Çok kiracılı, güvenli ve hızlı CRM paneli
               </div>
             </div>
@@ -87,9 +87,9 @@ const onSubmit = async () => {
 
         <!-- SOL: FORM -->
         <v-col cols="12" md="5" class="form-col">
-          <v-sheet class="form-card" rounded="xl" elevation="2">
+          <v-sheet class="form-card" rounded="xl" elevation="2" color="surface">
             <div class="d-flex align-center mb-6">
-              <v-avatar size="40" class="me-3" color="white" variant="flat">
+              <v-avatar size="40" class="me-3" color="surface" variant="flat">
                 <v-img src="https://placehold.co/80x80?text=CRM" />
               </v-avatar>
               <div>
@@ -125,26 +125,35 @@ const onSubmit = async () => {
                 placeholder="reginamed"
                 autocomplete="organization"
                 prepend-inner-icon="mdi-domain"
-                class="mb-2"
+                variant="outlined"
+                bg-color="surface"
+                color="primary"
+                class="mb-4"
               />
 
               <v-text-field
-                v-model="email"
-                label="E-mail"
-                type="email"
-                autocomplete="username"
-                prepend-inner-icon="mdi-email-outline"
-                class="mb-2"
-              />
+  v-model="email"
+  label="E-mail"
+  type="email"
+  autocomplete="username"
+  prepend-inner-icon="mdi-email-outline"
+  variant="outlined"
+  bg-color="surface"
+  color="primary"
+  class="mb-4"
+/>
 
-              <v-text-field
-                v-model="password"
-                label="Password"
-                type="password"
-                autocomplete="current-password"
-                prepend-inner-icon="mdi-lock-outline"
-                class="mb-6"
-              />
+<v-text-field
+  v-model="password"
+  label="Password"
+  type="password"
+  autocomplete="current-password"
+  prepend-inner-icon="mdi-lock-outline"
+  variant="outlined"
+  bg-color="surface"
+  color="primary"
+  class="mb-6"
+/>
 
               <v-btn
                 type="submit"
@@ -162,11 +171,11 @@ const onSubmit = async () => {
         <!-- SAĞ: HERO (md ve üstü) -->
         <v-col cols="12" md="7" class="d-none d-md-flex hero-col">
           <div class="hero">
-            <div class="hero__overlay">
-              <div class="hero__title">
+            <div class="hero-overlay">
+              <div class="hero-title">
                 Bring your ideas to life
               </div>
-              <div class="hero__subtitle">
+              <div class="hero-subtitle">
                 Çok kiracılı, güvenli ve hızlı CRM paneli
               </div>
             </div>
@@ -178,16 +187,9 @@ const onSubmit = async () => {
 </template>
 
 <style scoped>
-/* Palette
-   Dark:   #061E29
-   Primary:#1D546D
-   Accent: #5F9598
-   BG:     #F3F4F4
-*/
-
 .login-page {
   min-height: 100vh;
-  background: #F3F4F4;
+  background: var(--crm-bg);
 }
 
 .login-row {
@@ -206,33 +208,32 @@ const onSubmit = async () => {
   width: 100%;
   max-width: 440px;
   padding: 32px;
-  background: #ffffff;
 }
 
 .brand-title {
   font-weight: 800;
-  color: #061E29;
+  color: var(--crm-text);
   line-height: 1.1;
 }
 
 .brand-subtitle {
   font-size: 12px;
-  color: rgba(6, 30, 41, 0.6);
+  color: var(--crm-text-muted);
 }
 
 .headline {
   font-size: 28px;
   font-weight: 800;
-  color: #061E29;
+  color: var(--crm-text);
   line-height: 1.1;
 }
 
 .subline {
-  color: rgba(6, 30, 41, 0.6);
+  color: var(--crm-text-muted);
   font-size: 14px;
 }
 
-/* RIGHT HERO (desktop) */
+/* HERO (desktop) */
 .hero-col {
   min-height: 100vh;
 }
@@ -248,7 +249,7 @@ const onSubmit = async () => {
   position: relative;
 }
 
-.hero__overlay {
+.hero-overlay {
   position: absolute;
   left: 40px;
   bottom: 40px;
@@ -260,14 +261,14 @@ const onSubmit = async () => {
   backdrop-filter: blur(6px);
 }
 
-.hero__title {
+.hero-title {
   font-size: 34px;
   font-weight: 900;
   color: #ffffff;
   line-height: 1.1;
 }
 
-.hero__subtitle {
+.hero-subtitle {
   margin-top: 8px;
   color: rgba(243, 244, 244, 0.9);
 }
@@ -283,27 +284,20 @@ const onSubmit = async () => {
   position: relative;
 }
 
-.mobile-hero__overlay {
+.hero-overlay--mobile {
   position: absolute;
   left: 16px;
   right: 16px;
   bottom: 16px;
   padding: 16px;
   border-radius: 16px;
-  background: rgba(6, 30, 41, 0.55);
-  backdrop-filter: blur(6px);
 }
 
-.mobile-hero__title {
+.hero-title--mobile {
   font-size: 22px;
-  font-weight: 900;
-  color: #ffffff;
-  line-height: 1.15;
 }
 
-.mobile-hero__subtitle {
-  margin-top: 6px;
+.hero-subtitle--mobile {
   font-size: 13px;
-  color: rgba(243, 244, 244, 0.9);
 }
 </style>
