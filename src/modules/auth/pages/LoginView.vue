@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/core/auth/auth.store'
 import { useTenantStore } from '@/core/tenant/tenant.store'
@@ -15,6 +15,9 @@ const password = ref('')
 const isLoading = ref(false)
 const errorText = ref('')
 
+const emailField = ref<any>(null)
+const passwordField = ref<any>(null)
+
 const extractToken = (payload: any): string => {
   return (
     payload?.access_token ??
@@ -24,6 +27,35 @@ const extractToken = (payload: any): string => {
     ''
   )
 }
+
+/**
+ * Chrome/Edge autofill bazen input'u doldurur ama v-model tetiklemez.
+ * Bu yüzden DOM'daki gerçek value'yu okuyup state'e yazarız.
+ */
+const syncAutofillToModel = async () => {
+  await nextTick()
+
+  const read = (fieldRef: any) => {
+    const el: HTMLElement | null = fieldRef?.$el ?? fieldRef
+    const input = el?.querySelector?.('input') as HTMLInputElement | null
+    return (input?.value ?? '').toString()
+  }
+
+  const e = read(emailField.value)
+  const p = read(passwordField.value)
+
+  if (e && !email.value)
+    email.value = e
+
+  if (p && !password.value)
+    password.value = p
+}
+
+onMounted(() => {
+  // Autofill genelde mount'tan biraz sonra gelir
+  setTimeout(() => { syncAutofillToModel() }, 60)
+  setTimeout(() => { syncAutofillToModel() }, 250)
+})
 
 const onSubmit = async () => {
   if (isLoading.value)
@@ -66,6 +98,7 @@ const onSubmit = async () => {
   }
 }
 </script>
+
 
 <template>
   <div class="login-page">
@@ -119,10 +152,11 @@ const onSubmit = async () => {
             </v-alert>
 
             <v-form @submit.prevent="onSubmit">
-              <v-text-field
+                         <v-text-field
                 v-model="tenantKey"
                 label="Tenant"
-                placeholder="reginamed"
+                hint="Örn: reginamed"
+                persistent-hint
                 autocomplete="organization"
                 prepend-inner-icon="mdi-domain"
                 variant="outlined"
@@ -131,29 +165,38 @@ const onSubmit = async () => {
                 class="mb-4"
               />
 
-              <v-text-field
+                <!-- E-mail -->
+
+<v-text-field
   v-model="email"
-  label="E-mail"
+  placeholder="E-mail adresiniz"
   type="email"
+  name="email"
   autocomplete="username"
   prepend-inner-icon="mdi-email-outline"
   variant="outlined"
   bg-color="surface"
   color="primary"
+  hide-details="auto"
   class="mb-4"
 />
 
+<!-- Password -->
+
 <v-text-field
   v-model="password"
-  label="Password"
+  placeholder="Şifreniz"
   type="password"
+  name="password"
   autocomplete="current-password"
   prepend-inner-icon="mdi-lock-outline"
   variant="outlined"
   bg-color="surface"
   color="primary"
+  hide-details="auto"
   class="mb-6"
 />
+
 
               <v-btn
                 type="submit"

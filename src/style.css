@@ -1,19 +1,7 @@
 :root {
-  /* CRM Design Tokens (Single Source of Truth) */
-  --crm-dark: #061E29;
-  --crm-primary: #1D546D;
-  --crm-accent: #5F9598;
-  --crm-bg: #F3F4F4;
-  --crm-surface: #FFFFFF;
-
-  --crm-text: var(--crm-dark);
-  --crm-text-muted: rgba(6, 30, 41, 0.65);
-
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -27,9 +15,9 @@ body,
 
 body {
   margin: 0;
-  background: var(--crm-bg);
-  color: var(--crm-text);
+  background: #F3F4F4; /* theme background ile aynı */
 }
+
 
 a {
   color: var(--crm-primary);
