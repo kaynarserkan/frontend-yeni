@@ -143,6 +143,16 @@ Dosyalar gelmeden üretim yapılmaz.
   - **yeni TAM gövde** eksiksiz verilir
   - yarım blok / parçalı satır bırakmak **YASAKTIR**
 
+### 5.1) Style Bloğu Patch Kuralı (SERT)
+
+- `<style>` değişikliklerinde **Bul kısmına eski style bloğunun tamamı ASLA yazılmaz.**
+- Style patch formatı zorunlu:
+  - **Çapa:** `<style scoped>` veya `<style>` // style bloğunun tamamı
+  - **Bul:** sadece `<style scoped>` (veya `<style>`) satırı
+  - **Yerine koy:** komple yeni `<style ...> ... </style>` bloğu
+- Eski style’ı “Bul” içine kopyalamak **YASAKTIR**.
+- Bu kural ihlal edilirse çıktı **GEÇERSİZ** kabul edilir.
+
 - Doküman/guide dosyalarında:
   - dosyanın tamamı **ASLA** yeniden yazılmaz
   - yalnızca:
@@ -150,6 +160,7 @@ Dosyalar gelmeden üretim yapılmaz.
     - ilgili **eklenecek maddeler**
     - ve **hangi satırdan/bölümden sonra ekleneceği**
     net biçimde verilir
+
 
 ---
 

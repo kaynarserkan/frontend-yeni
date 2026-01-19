@@ -1,11 +1,76 @@
+/* Google Fonts (CDN) — Eğer "Google Sans" Google Fonts'ta yoksa yüklenmez ve fallback çalışır. */
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;600;700;800&display=swap');
+
 :root {
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  /* ===== Font (tek kaynak) ===== */
+  font-family: "Google Sans", sans-serif;
+  font-size: 15px;
+
+  line-height: 1.6;
   font-weight: 400;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* ===== Typography scale (tek kaynak) ===== */
+  --crm-text-xs: 0.75rem;   /* 12px */
+  --crm-text-sm: 0.875rem;  /* 14px */
+  --crm-text-md: 1rem;      /* 16px */
+  --crm-text-lg: 1.125rem;  /* 18px */
+  --crm-text-xl: 1.25rem;   /* 20px */
+  --crm-text-2xl: 1.625rem; /* 26px */
+  --crm-text-3xl: 1.5rem;   /* 24px */
+
+  /* ===== Font weights ===== */
+  --crm-fw-regular: 400;
+  --crm-fw-medium: 600;
+  --crm-fw-bold: 700;
+  --crm-fw-xbold: 800;
+
+  /* ===== Spacing (tek kaynak) ===== */
+  --crm-space-1: 4px;
+  --crm-space-2: 8px;
+  --crm-space-3: 12px;
+  --crm-space-4: 16px;
+  --crm-space-5: 20px;
+  --crm-space-6: 24px;
+
+  /* ===== Common sizes ===== */
+  --crm-control-h: 40px;
+  --crm-head-h: 48px;
+  --crm-field-min-w: 260px;
+
+  /* ===== Layout sizes (tek kaynak) ===== */
+  --crm-topbar-h: 64px;                 /* MasterLayout v-app-bar height */
+  --crm-sidebar-handle-h: 56px;         /* MasterLayout rail handle height */
+  --crm-page-h: calc(100vh - var(--crm-topbar-h));
+
+  /* ===== Icon button sizes ===== */
+  --crm-icon-btn-sm: 28px;              /* card içi mini icon */
+  --crm-icon-btn-md: 36px;              /* normal icon btn */
+
+  /* ===== Alpha tokens ===== */
+  --crm-alpha-12: 12%;
+  --crm-alpha-55: 55%;
+  --crm-alpha-60: 60%;
+  --crm-alpha-70: 70%;
+  --crm-alpha-85: 85%;
+  --crm-alpha-88: 88%;
+
+  /* ===== Table tokens ===== */
+  --crm-table-row-odd: #f8f8f8;
+  --crm-table-row-even: #ffffff;
+
+  --crm-table-cell-py: 14px;
+  --crm-table-cell-px: 16px;
+
+  --crm-radius-1: 6px;
+
+  /* ===== Card shadow (numbers only) ===== */
+  --crm-shadow-y: 14px;
+  --crm-shadow-blur: 40px;
 }
+
 
 html,
 body,
@@ -15,15 +80,21 @@ body,
 
 body {
   margin: 0;
-  background: #F3F4F4; /* theme background ile aynı */
+
+  /* Vuetify theme renklerini kullan (tek kaynak) */
+  background: rgb(var(--v-theme-background));
+  color: rgb(var(--v-theme-on-background));
+
+  /* Font TEK KAYNAK: :root (burada tanımlama yok) */
+  font-size: 16px;
 }
+
 
 
 a {
-  color: var(--crm-primary);
+  color: rgb(var(--v-theme-primary));
   text-decoration: none;
 }
-
 a:hover {
   text-decoration: underline;
 }
@@ -41,8 +112,9 @@ textarea:-webkit-autofill:focus,
 select:-webkit-autofill,
 select:-webkit-autofill:hover,
 select:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--crm-text);
-  -webkit-box-shadow: 0 0 0px 1000px var(--crm-surface) inset !important;
-  box-shadow: 0 0 0px 1000px var(--crm-surface) inset !important;
+  -webkit-text-fill-color: rgb(var(--v-theme-on-surface));
+  -webkit-box-shadow: 0 0 0px 1000px rgb(var(--v-theme-surface)) inset !important;
+  box-shadow: 0 0 0px 1000px rgb(var(--v-theme-surface)) inset !important;
   transition: background-color 9999s ease-in-out 0s;
 }
+
