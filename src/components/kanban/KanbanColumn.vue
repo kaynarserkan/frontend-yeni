@@ -21,13 +21,16 @@
 </template>
 
 <script setup lang="ts">
+
 defineProps<{
   title: string
   count: number
 }>()
 </script>
-
 <style scoped>
+/* Bu component şu an kullanılmıyor (bkz script notu).
+   Stil karmaşası yaratmamak için minimum tutuldu. */
+
 .kb-col {
   width: 320px;
   flex: 0 0 320px;
@@ -35,6 +38,8 @@ defineProps<{
   background: rgb(var(--v-theme-surface));
   box-shadow: 0 var(--crm-shadow-y) var(--crm-shadow-blur)
     color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+  display: flex;
+  flex-direction: column;
 }
 
 .kb-col-head {
@@ -61,13 +66,7 @@ defineProps<{
 }
 
 .kb-col-body {
-  padding: var(--crm-space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--crm-space-3);
-}
-
-.kb-col-footer {
-  padding-top: var(--crm-space-2);
+  flex: 1;
+  min-height: 0;
 }
 </style>

@@ -1,57 +1,78 @@
 <template>
-  <div class="kb-board">
-  <div class="kb-columns">
   <div
-    v-for="(col, idx) in localColumns"
-    :key="col.key"
-    class="kb-col-wrap"
-    :class="{
-      'kb-col--scroll': scrollCols.has(col.key),
-      'kb-col--gap-right': shouldGapRight(idx),
-      'kb-col--divider-right': shouldDividerRight(idx),
-    }"
+    class="kb-board"
+    ref="boardRef"
+    @dragover.prevent="onBoardDragOver"
   >
-    <div class="kb-col">
-      <div class="kb-col-head">
-        <div class="d-flex align-center justify-space-between">
-          <div class="kb-col-title">
-            <span>{{ col.title }}</span>
-            <span class="kb-count">{{ col.items.length }}</span>
+    <div class="kb-columns">
+      <div
+        v-for="(col, idx) in localColumns"
+        :key="col.key"
+        class="kb-col-wrap"
+        :class="{
+          'kb-col--scroll': scrollCols.has(col.key),
+          'kb-col--gap-right': shouldGapRight(idx),
+          'kb-col--divider-right': shouldDividerRight(idx),
+          'kb-col--dragover': isDragOver(col.key),
+        }"
+      >
+        <div class="kb-col">
+          <div class="kb-col-head">
+            <div class="d-flex align-center justify-space-between">
+              <div class="kb-col-title">
+                <span>{{ col.title }}</span>
+                <span class="kb-count">{{ col.items.length }}</span>
+              </div>
+
+              <slot name="column-actions" :column="col" />
+            </div>
           </div>
 
-          <slot name="column-actions" :column="col" />
-        </div>
-      </div>
+          <div
+            class="kb-col-body"
+            :ref="el => setColBodyRef(col.key, el)"
+            @dragover.prevent="onDragOver(col.key, $event)"
+            @dragleave="onDragLeave(col.key)"
+            @drop.prevent="onDrop(col.key, $event)"
+          >
+            <div class="kb-col-body-inner">
+              <template
+                v-for="(card, cardIdx) in col.items"
+                :key="(card as any)?.[itemKey ?? 'id']"
+              >
+                <div v-if="showInsertLine(col.key, cardIdx)" class="kb-drop-line" />
 
-      <div
-  class="kb-col-body"
-  :ref="el => setColBodyRef(col.key, el)"
-  @dragover="onDragOver(col.key, $event)"
-  @dragleave="onDragLeave(col.key)"
-  @drop="onDrop(col.key, $event)"
->
-        <div class="kb-col-body-inner">
-          <template v-for="(card, cardIdx) in col.items" :key="(card as any)?.[itemKey ?? 'id']">
-            <div
-                class="kb-dnd-card"
-                draggable="true"
-                @dragstart="onDragStart(col.key, card, $event)"
-                @dragend="onDragEnd"
-            >
-                <slot name="card" :item="card" :column="col" :index="cardIdx" />
+                <div
+                  class="kb-dnd-card"
+                  :class="{ 'kb-dnd-card--dragging': isDragging(col.key, card) }"
+                  draggable="true"
+                  @dragstart="onDragStart(col.key, card, $event)"
+                  @dragend="onDragEnd"
+                  @dragover.prevent="onCardDragOver(col.key, cardIdx, $event)"
+                >
+                  <slot
+                    name="card"
+                    :item="card"
+                    :column="col"
+                    :index="cardIdx"
+                    :selected="isSelected(card)"
+                    :toggle-select="() => toggleSelected(card)"
+                  />
+                </div>
+              </template>
+
+              <div v-if="showInsertLine(col.key, col.items.length)" class="kb-drop-line" />
+
+              <div v-if="$slots['column-footer']" class="kb-col-footer">
+                <slot name="column-footer" :column="col" />
+              </div>
             </div>
-            </template>
-
-
-          <div v-if="$slots['column-footer']" class="kb-col-footer">
-            <slot name="column-footer" :column="col" />
           </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
+    <!-- (İleride lazım olur) Selection'ı sıfırlamak istersen dışarıdan slot/btn ile çağırırız -->
   </div>
 </template>
 
@@ -67,18 +88,20 @@ type KanbanColumn<T> = {
 const props = defineProps<{
   columns: Array<KanbanColumn<any>>
   itemKey?: string
+  enableSelection?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:columns', v: Array<KanbanColumn<any>>): void
   (e: 'card-moved', payload: { item: any; from: string; to: string }): void
+
+  // ✅ Seçim state board içinde, sayfa sadece “var/yok” alır
+  (e: 'selection-change', payload: { selectedIds: Set<string | number>; hasSelection: boolean }): void
 }>()
 
-/**
- * ✅ Reusable component kuralı:
- * props'u doğrudan mutate etmeyelim; local kopya ile render edelim.
- * (item objeleri referans kalır; sadece dizi yapısını kopyalıyoruz)
- */
+/* =========================
+   ✅ columns clone (no prop mutate)
+   ========================= */
 const cloneColumns = (cols: Array<KanbanColumn<any>>): Array<KanbanColumn<any>> =>
   cols.map(c => ({
     key: c.key,
@@ -90,7 +113,7 @@ const localColumns = ref<Array<KanbanColumn<any>>>(cloneColumns(props.columns))
 
 watch(
   () => props.columns,
-  async (v) => {
+  async v => {
     localColumns.value = cloneColumns(v)
     await nextTick()
     calcScrollCols()
@@ -98,6 +121,41 @@ watch(
   { deep: true },
 )
 
+/* =========================
+   ✅ Selection (Zoho checkbox)
+   ========================= */
+const selectedIds = ref<Set<string | number>>(new Set())
+
+const getItemId = (item: any) => {
+  const k = props.itemKey ?? 'id'
+  return (item as any)?.[k]
+}
+
+const isSelected = (item: any) => selectedIds.value.has(getItemId(item))
+
+const emitSelection = () => {
+  emit('selection-change', {
+    selectedIds: selectedIds.value,
+    hasSelection: selectedIds.value.size > 0,
+  })
+}
+
+const toggleSelected = (item: any) => {
+  if (!props.enableSelection) return
+
+  const id = getItemId(item)
+  const next = new Set(selectedIds.value)
+
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+
+  selectedIds.value = next
+  emitSelection()
+}
+
+/* =========================
+   ✅ Scroll detection
+   ========================= */
 const bodyRefs = new Map<string, HTMLElement>()
 const scrollCols = ref(new Set<string>())
 
@@ -108,32 +166,28 @@ const setColBodyRef = (key: string, el: Element | { $el?: unknown } | null) => {
   }
 
   const rawEl = (el as any)?.$el ? (el as any).$el : el
-  if (rawEl instanceof HTMLElement)
-    bodyRefs.set(key, rawEl)
+  if (rawEl instanceof HTMLElement) bodyRefs.set(key, rawEl)
 }
 
 const calcScrollCols = () => {
   const next = new Set<string>()
   for (const [key, el] of bodyRefs.entries()) {
     const hasOverflow = el.scrollHeight > el.clientHeight + 1
-    if (hasOverflow)
-      next.add(key)
+    if (hasOverflow) next.add(key)
   }
   scrollCols.value = next
 }
 
 const shouldGapRight = (idx: number) => {
   const a = localColumns.value[idx]
-  const b = localColumns.value[idx + 1]
-  if (!a || !b) return false
-  return !scrollCols.value.has(a.key) && !scrollCols.value.has(b.key)
+  if (!a) return false
+  return !scrollCols.value.has(a.key)
 }
 
 const shouldDividerRight = (idx: number) => {
   const a = localColumns.value[idx]
-  const b = localColumns.value[idx + 1]
-  if (!a || !b) return false
-  return !shouldGapRight(idx)
+  if (!a) return false
+  return scrollCols.value.has(a.key)
 }
 
 let ro: ResizeObserver | null = null
@@ -143,10 +197,12 @@ onMounted(async () => {
   calcScrollCols()
 
   ro = new ResizeObserver(() => calcScrollCols())
-  for (const el of bodyRefs.values())
-    ro.observe(el)
+  for (const el of bodyRefs.values()) ro.observe(el)
 
   window.addEventListener('resize', calcScrollCols)
+
+  // ilk açılış: selection yok -> sayfaya bildir
+  emitSelection()
 })
 
 onUnmounted(() => {
@@ -166,46 +222,137 @@ watch(
 /* =========================
    ✅ Drag & Drop (native)
    ========================= */
-
-const dragState = ref<null | { fromKey: string; item: any }>(null)
+const dragState = ref<null | { fromKey: string; item: any; itemId: string | number }>(null)
 const dragOverCol = ref<string | null>(null)
+const dragOverIndex = ref<number | null>(null)
+
+/* =========================
+   ✅ Board auto horizontal scroll (drag while)
+   ========================= */
+const boardRef = ref<HTMLElement | null>(null)
+
+let autoScrollRaf: number | null = null
+let lastClientX: number | null = null
+
+const AUTO_SCROLL_EDGE_PX = 90
+const AUTO_SCROLL_MAX_SPEED = 18
+
+const stopAutoScroll = () => {
+  if (autoScrollRaf !== null) {
+    cancelAnimationFrame(autoScrollRaf)
+    autoScrollRaf = null
+  }
+  lastClientX = null
+}
+
+const tickAutoScroll = () => {
+  if (!dragState.value || !boardRef.value || lastClientX === null) {
+    stopAutoScroll()
+    return
+  }
+
+  const el = boardRef.value
+  const rect = el.getBoundingClientRect()
+
+  const distLeft = lastClientX - rect.left
+  const distRight = rect.right - lastClientX
+
+  let speed = 0
+
+  if (distLeft >= 0 && distLeft < AUTO_SCROLL_EDGE_PX) {
+    const t = 1 - distLeft / AUTO_SCROLL_EDGE_PX
+    speed = -Math.ceil(t * AUTO_SCROLL_MAX_SPEED)
+  }
+
+  if (distRight >= 0 && distRight < AUTO_SCROLL_EDGE_PX) {
+    const t = 1 - distRight / AUTO_SCROLL_EDGE_PX
+    speed = Math.ceil(t * AUTO_SCROLL_MAX_SPEED)
+  }
+
+  if (speed !== 0) el.scrollLeft += speed
+
+  autoScrollRaf = requestAnimationFrame(tickAutoScroll)
+}
+
+const onBoardDragOver = (e: DragEvent) => {
+  if (!dragState.value) return
+  if (typeof e.clientX === 'number') lastClientX = e.clientX
+  if (autoScrollRaf === null) autoScrollRaf = requestAnimationFrame(tickAutoScroll)
+}
 
 const getColByKey = (key: string) => localColumns.value.find(c => c.key === key)
 
+const isDragging = (colKey: string, item: any) => {
+  if (!dragState.value) return false
+  return dragState.value.fromKey === colKey && dragState.value.itemId === getItemId(item)
+}
+
+const isDragOver = (toKey: string) => {
+  if (!dragState.value) return false
+  if (!dragOverCol.value) return false
+  return dragOverCol.value === toKey
+}
+
+const onCardDragOver = (toKey: string, idx: number, e: DragEvent) => {
+  if (!dragState.value) return
+  e.preventDefault()
+  dragOverCol.value = toKey
+  dragOverIndex.value = idx
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+}
+
+const showInsertLine = (colKey: string, idx: number) => {
+  if (!dragState.value) return false
+  if (dragOverCol.value !== colKey) return false
+  return dragOverIndex.value === idx
+}
+
 const onDragStart = (fromKey: string, item: any, e: DragEvent) => {
-  dragState.value = { fromKey, item }
+  dragState.value = { fromKey, item, itemId: getItemId(item) }
+
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = 'move'
-    // bazı tarayıcılarda drop çalışması için data şart
     e.dataTransfer.setData('text/plain', 'kb-card')
   }
 }
 
 const onDragEnd = () => {
+  stopAutoScroll()
   dragState.value = null
   dragOverCol.value = null
+  dragOverIndex.value = null
 }
 
 const onDragOver = (toKey: string, e: DragEvent) => {
   if (!dragState.value) return
   e.preventDefault()
+
   dragOverCol.value = toKey
-  if (e.dataTransfer)
-    e.dataTransfer.dropEffect = 'move'
+  dragOverIndex.value = getColByKey(toKey)?.items.length ?? 0
+
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
 }
 
 const onDragLeave = (toKey: string) => {
-  if (dragOverCol.value === toKey)
+  if (dragOverCol.value === toKey) {
     dragOverCol.value = null
+    dragOverIndex.value = null
+  }
 }
 
 const onDrop = async (toKey: string, e: DragEvent) => {
   if (!dragState.value) return
   e.preventDefault()
 
-  const { fromKey, item } = dragState.value
+  stopAutoScroll()
+
+  const { fromKey, item, itemId } = dragState.value
+
+  const toIndex = dragOverCol.value === toKey ? (dragOverIndex.value ?? 0) : 0
+
   dragState.value = null
   dragOverCol.value = null
+  dragOverIndex.value = null
 
   if (fromKey === toKey) return
 
@@ -213,12 +360,19 @@ const onDrop = async (toKey: string, e: DragEvent) => {
   const toCol = getColByKey(toKey)
   if (!fromCol || !toCol) return
 
-  const idx = fromCol.items.indexOf(item)
-  if (idx >= 0)
-    fromCol.items.splice(idx, 1)
+  const fromIdx = fromCol.items.findIndex(x => getItemId(x) === itemId)
+  if (fromIdx >= 0) fromCol.items.splice(fromIdx, 1)
 
-  // ✅ basit: hedef kolona sona ekle (Zoho gibi)
-  toCol.items.push(item)
+  const safeIndex = Math.max(0, Math.min(toIndex, toCol.items.length))
+  toCol.items.splice(safeIndex, 0, item)
+
+  const placedIdx = toCol.items.findIndex(x => getItemId(x) === itemId)
+  if (placedIdx > 0) {
+    const [moved] = toCol.items.splice(placedIdx, 1)
+    toCol.items.unshift(moved)
+  } else if (placedIdx === -1) {
+    toCol.items.unshift(item)
+  }
 
   emit('update:columns', localColumns.value)
   emit('card-moved', { item, from: fromKey, to: toKey })
@@ -228,13 +382,9 @@ const onDrop = async (toKey: string, e: DragEvent) => {
 }
 </script>
 
-
 <style scoped>
 .kb-board {
-  /* ✅ Zoho hissi: scrollbar için fiziksel boşluk (gutter) */
   --kb-scrollbar-gutter: var(--crm-space-4);
-
-  /* ✅ kart radius (token varsa onu kullan) */
   --kb-card-radius: var(--crm-radius-sm, var(--crm-space-1));
 
   overflow-x: auto;
@@ -249,7 +399,6 @@ const onDrop = async (toKey: string, e: DragEvent) => {
   height: 100%;
 }
 
-/* ✅ Kolon wrapper: kolonun SAĞINDA scroll-gutter ayıracağımız katman */
 .kb-col-wrap {
   width: 320px;
   flex: 0 0 320px;
@@ -257,14 +406,12 @@ const onDrop = async (toKey: string, e: DragEvent) => {
   display: flex;
 }
 
-/* scroll varsa: kolon + gutter kadar yer kaplasın (sonra diğer kolon gelsin) */
 .kb-col-wrap.kb-col--scroll {
   width: calc(320px + var(--kb-scrollbar-gutter));
   flex-basis: calc(320px + var(--kb-scrollbar-gutter));
   padding-right: var(--kb-scrollbar-gutter);
 }
 
-/* Column */
 .kb-col {
   width: 320px;
   flex: 0 0 320px;
@@ -279,12 +426,10 @@ const onDrop = async (toKey: string, e: DragEvent) => {
   height: 100%;
 }
 
-/* KURAL 1: scroll YOKSA kolonlar arasında boşluk */
 .kb-col-wrap.kb-col--gap-right {
   margin-right: var(--crm-space-4);
 }
 
-/* KURAL 2: scroll VARSA (gap yoksa) kolonlar bitişik + arada dikey çizgi (wrap sınırında) */
 .kb-col-wrap.kb-col--divider-right {
   border-right: 1px solid color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
 }
@@ -324,37 +469,62 @@ const onDrop = async (toKey: string, e: DragEvent) => {
   padding: 0;
 }
 
-/* ✅ Scrollbar’ı kolonun DIŞINA taşı */
 .kb-col-wrap.kb-col--scroll .kb-col-body {
   margin-right: calc(var(--kb-scrollbar-gutter) * -1);
   padding-right: var(--kb-scrollbar-gutter);
 }
 
 .kb-col-body-inner {
-  padding: var(--crm-space-4);
+  padding: var(--crm-space-4) 0;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
   gap: var(--crm-space-3);
 }
 
-/* ✅ Kart wrapper: full width + küçük radius + drag hissi */
+.kb-drop-line {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, rgb(var(--v-theme-primary)) 20%, transparent);
+}
+
 .kb-dnd-card {
   width: 100%;
+  display: block;
+  box-sizing: border-box;
   border-radius: var(--kb-card-radius);
 }
 
-/* slot içeriğinin kendisi kart ise (kb-card class), yine tam genişlik */
+.kb-dnd-card > :deep(*) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .kb-dnd-card :deep(.kb-card) {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border-radius: var(--kb-card-radius);
 }
 
-/* drag sırasında seçilebilsin */
-.kb-dnd-card[draggable="true"] {
+.kb-dnd-card--dragging {
+  opacity: 0.5;
+}
+
+.kb-col-wrap.kb-col--dragover .kb-col {
+  outline: 2px dashed color-mix(in srgb, rgb(var(--v-theme-primary)) var(--crm-alpha-60), transparent);
+  outline-offset: 2px;
+  background: color-mix(in srgb, rgb(var(--v-theme-primary)) 4%, rgb(var(--v-theme-surface)));
+}
+
+.kb-dnd-card[draggable='true'] {
   cursor: grab;
 }
 
-.kb-dnd-card[draggable="true"]:active {
+.kb-dnd-card[draggable='true']:active {
   cursor: grabbing;
 }
 
@@ -362,6 +532,3 @@ const onDrop = async (toKey: string, e: DragEvent) => {
   padding-top: var(--crm-space-2);
 }
 </style>
-
-
-
