@@ -88,16 +88,75 @@
       </div>
     </v-navigation-drawer>
 
+        <!-- ✅ GLOBAL OVERLAYS (Left/Right Off-canvas + Dialog) -->
+    <v-navigation-drawer
+      v-model="overlay.left.open"
+      location="left"
+      temporary
+      width="420"
+      class="crm-offcanvas"
+    >
+      <div class="crm-offcanvas-head">
+        <div class="crm-offcanvas-title">Panel</div>
+        <v-btn icon variant="text" class="crm-icon-btn" @click="overlay.closeLeft()" aria-label="Close left panel">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </div>
+
+      <div class="crm-offcanvas-body">
+        <component :is="overlay.left.component" v-bind="overlay.left.props" />
+      </div>
+    </v-navigation-drawer>
+
+    <v-navigation-drawer
+      v-model="overlay.right.open"
+      location="right"
+      temporary
+      width="420"
+      class="crm-offcanvas"
+    >
+      <div class="crm-offcanvas-head">
+        <div class="crm-offcanvas-title">Panel</div>
+        <v-btn icon variant="text" class="crm-icon-btn" @click="overlay.closeRight()" aria-label="Close right panel">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </div>
+
+      <div class="crm-offcanvas-body">
+        <component :is="overlay.right.component" v-bind="overlay.right.props" />
+      </div>
+    </v-navigation-drawer>
+
+    <v-dialog v-model="overlay.dialog.open" max-width="760">
+      <v-card>
+        <div class="crm-dialog-head">
+          <div class="crm-dialog-title">{{ overlay.dialog.title ?? 'Dialog' }}</div>
+          <v-btn icon variant="text" class="crm-icon-btn" @click="overlay.closeDialog()" aria-label="Close dialog">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+
+        <div class="crm-dialog-body">
+          <component :is="overlay.dialog.component" v-bind="overlay.dialog.props" />
+        </div>
+      </v-card>
+    </v-dialog>
+
     <!-- MAIN -->
     <v-main class="crm-main">
       <router-view />
     </v-main>
+
   </v-app>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useLayoutOverlayStore } from '@/core/layout/layoutOverlay.store'
+
+const overlay = useLayoutOverlayStore()
+
 
 const route = useRoute()
 
@@ -209,5 +268,50 @@ const toggleDrawer = () => {
   height: 44px;
   color: color-mix(in srgb, rgb(var(--v-theme-primary)) var(--crm-alpha-88), transparent);
 }
+
+/* ✅ Off-canvas (global) */
+.crm-offcanvas {
+  background: rgb(var(--v-theme-surface));
+}
+
+.crm-offcanvas-head {
+  height: 56px;
+  padding: 0 var(--crm-space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+}
+
+.crm-offcanvas-title {
+  font-size: var(--crm-text-sm);
+  font-weight: var(--crm-fw-xbold);
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.crm-offcanvas-body {
+  padding: var(--crm-space-4);
+}
+
+/* ✅ Dialog (global) */
+.crm-dialog-head {
+  height: 56px;
+  padding: 0 var(--crm-space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+}
+
+.crm-dialog-title {
+  font-size: var(--crm-text-sm);
+  font-weight: var(--crm-fw-xbold);
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.crm-dialog-body {
+  padding: var(--crm-space-4);
+}
+
 </style>
 

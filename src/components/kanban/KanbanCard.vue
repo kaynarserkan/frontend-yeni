@@ -1,24 +1,23 @@
 <template>
-  <div class="kb-card" :class="{ 'kb-card--selectable': selectable }">
-    <!-- ✅ Zoho gibi: hover'da çıkan checkbox -->
-    <div
+  <div class="kb-card" :class="{ 'kb-card--selectable': selectable, 'kb-card--selected': selected }">
+    <!-- ✅ Tek checkbox: hover’da çıkar, seçiliyse görünür -->
+<button
       v-if="selectable"
+      type="button"
       class="kb-card-select"
       :class="{ 'is-visible': selected }"
       @mousedown.stop
-      @click.stop
+      @click.stop="emit('toggle-select')"
+      aria-label="Select card"
     >
-      <v-checkbox
-        :model-value="selected"
-        @update:model-value="emit('toggle-select')"
-        density="compact"
-        hide-details
-      />
-    </div>
+      <span class="kb-card-select-box" :class="{ 'is-checked': selected }" />
+    </button>
 
     <slot />
   </div>
 </template>
+
+
 
 <script setup lang="ts">
 const props = defineProps<{
@@ -33,7 +32,6 @@ const emit = defineEmits<{
 // defaultlar (Vue template tarafında undefined olmasın)
 void props
 </script>
-
 <style scoped>
 .kb-card {
   width: 100%;
@@ -48,7 +46,16 @@ void props
   padding: var(--crm-space-4);
 }
 
-/* ✅ Zoho: hover’da çıkan checkbox */
+/* seçili kart hissi */
+.kb-card--selected {
+  border-color: color-mix(in srgb, rgb(var(--v-theme-primary)) var(--crm-alpha-60), transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, rgb(var(--v-theme-primary)) var(--crm-alpha-35), transparent),
+    0 var(--crm-shadow-y) calc(var(--crm-shadow-blur) * 0.8)
+      color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+}
+
+/* hover’da çıkan kutu */
 .kb-card-select {
   position: absolute;
   top: 8px;
@@ -61,7 +68,10 @@ void props
   background: rgb(var(--v-theme-surface));
   border-radius: 6px;
   box-shadow: 0 2px 10px color-mix(in srgb, rgb(var(--v-theme-secondary)) 20%, transparent);
-  padding: 2px 4px;
+  padding: 2px;
+
+  border: 0;
+  cursor: pointer;
 }
 
 .kb-card--selectable:hover .kb-card-select,
@@ -70,23 +80,20 @@ void props
   pointer-events: auto;
 }
 
-/* checkbox boşluklarını küçült */
-.kb-card-select :deep(.v-selection-control) {
-  min-height: 0;
-}
-.kb-card-select :deep(.v-selection-control__wrapper),
-.kb-card-select :deep(.v-selection-control__input) {
+.kb-card-select-box {
+  display: block;
   width: 18px;
   height: 18px;
+  border-radius: 4px;
+
+  border: 2px solid color-mix(in srgb, rgb(var(--v-theme-on-surface)) var(--crm-alpha-35), transparent);
+  background: transparent;
 }
 
-/* Kart içindeki icon button’lar: hizalama/ölçü standardı */
-.kb-card :deep(.v-btn--icon) {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-}
-.kb-card :deep(.v-btn--icon .v-icon) {
-  line-height: 1;
+.kb-card-select-box.is-checked {
+  border-color: rgb(var(--v-theme-primary));
+  background: color-mix(in srgb, rgb(var(--v-theme-primary)) 18%, transparent);
+  box-shadow: inset 0 0 0 2px rgb(var(--v-theme-primary));
 }
 </style>
+

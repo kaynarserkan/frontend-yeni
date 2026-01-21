@@ -14,10 +14,10 @@ const routes = [
       {
         path: 'dashboard',
         name: 'dashboard',
-components: {
-  default: () => import('@/modules/dashboard/pages/DashboardView.vue'),
-  sidebar: () => import('@/modules/dashboard/components/DashboardKanbanSidebar.vue'),
-}
+        components: {
+          default: () => import('@/modules/dashboard/pages/DashboardView.vue'),
+          //sidebar: () => import('@/modules/dashboard/components/DashboardKanbanSidebar.vue'),
+        },
       },
     ],
   },

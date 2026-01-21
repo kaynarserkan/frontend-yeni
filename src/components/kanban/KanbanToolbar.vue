@@ -1,14 +1,9 @@
 <template>
   <div class="kb-toolbar d-flex align-center justify-space-between">
     <div class="kb-left d-flex align-center ga-3">
-      <!-- ✅ Override isteyen sayfa varsa slot ile ezebilir -->
       <slot name="left">
-        <!-- ✅ Seçim varsa: Edit + Actions -->
+        <!-- ✅ Seçim varsa: SADECE Actions -->
         <template v-if="hasSelection">
-          <v-btn variant="tonal" class="kb-edit">
-            Edit
-          </v-btn>
-
           <v-menu location="bottom start">
             <template #activator="{ props }">
               <v-btn v-bind="props" variant="tonal">
@@ -51,7 +46,6 @@
     </div>
 
     <div class="kb-right d-flex align-center ga-3">
-      <!-- ✅ Override isteyen sayfa varsa slot ile ezebilir -->
       <slot name="right">
         <!-- ✅ seçim varsa sağ taraf komple gizli -->
         <template v-if="!hasSelection">
@@ -92,9 +86,7 @@
             </v-btn>
           </div>
 
-          <v-btn color="primary" prepend-icon="mdi-plus">
-            Create Lead
-          </v-btn>
+          <v-btn color="primary" prepend-icon="mdi-plus"> Create Lead </v-btn>
 
           <v-menu location="bottom end">
             <template #activator="{ props }">
@@ -116,33 +108,74 @@
 
 <script setup lang="ts">
 defineProps<{
-  hasSelection?: boolean
-}>()
+  hasSelection?: boolean;
+}>();
 </script>
 
 <style scoped>
+/* ===============================
+   ✅ TOOLBAR — DAHA DA KÜÇÜK (24px)
+   =============================== */
+
 .kb-toolbar {
-  gap: var(--crm-space-4);
-  margin-bottom: var(--crm-space-4);
+  gap: 6px;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-bottom: 6px;
+  min-height: 26px;
+  align-items: center;
 }
 
+/* ✅ Asıl hedef: butonların yüksekliği + fontu */
 .kb-toolbar :deep(.v-btn) {
-  /* ✅ biraz daha kısa (Zoho hissi) */
-  height: calc(var(--crm-control-h) - var(--crm-space-2));
-  min-height: calc(var(--crm-control-h) - var(--crm-space-2));
-  font-weight: var(--crm-fw-medium);
+  height: 24px;
+  min-height: 24px;
+
+  /* iç boşlukları küçült */
+  padding-inline: 10px;
+  padding-top: 0;
+  padding-bottom: 0;
+
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
+/* ✅ Buton iç content bazen ekstra height veriyor, onu da sık */
+.kb-toolbar :deep(.v-btn__content) {
+  line-height: 1;
+}
+
+/* ✅ Prepend/append icon aralıkları küçülsün */
+.kb-toolbar :deep(.v-btn__prepend),
+.kb-toolbar :deep(.v-btn__append) {
+  margin-inline: 4px;
+}
+
+/* ✅ Icon butonlar (pencil vb) */
+.kb-toolbar :deep(.v-btn--icon) {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+}
+
+/* ✅ Icon boyutu küçülsün */
 .kb-toolbar :deep(.v-icon) {
+  font-size: 14px;
   color: currentColor;
 }
 
-.kb-toolbar :deep(.kb-muted) {
-  font-size: var(--crm-text-sm);
-  color: color-mix(in srgb, rgb(var(--v-theme-on-surface)) var(--crm-alpha-60), transparent);
+/* ✅ Toolbar label/text küçülsün */
+.kb-toolbar :deep(.kb-muted),
+.kb-toolbar span {
+  font-size: 11px;
+  line-height: 1;
 }
 
-.kb-edit {
-  font-weight: var(--crm-fw-medium);
+/* ✅ Dropdown list */
+.kb-toolbar :deep(.v-list-item-title) {
+  font-size: 11px;
 }
 </style>

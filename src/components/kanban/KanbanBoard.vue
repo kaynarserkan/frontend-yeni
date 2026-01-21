@@ -16,7 +16,8 @@
           'kb-col--dragover': isDragOver(col.key),
         }"
       >
-        <div class="kb-col">
+               <div class="kb-col" :class="{ 'kb-col--empty': (col.items?.length ?? 0) === 0 }">
+
           <div class="kb-col-head">
             <div class="d-flex align-center justify-space-between">
               <div class="kb-col-title">
@@ -24,7 +25,21 @@
                 <span class="kb-count">{{ col.items.length }}</span>
               </div>
 
-              <slot name="column-actions" :column="col" />
+              <div class="d-flex align-center ga-2">
+                <!-- ✅ Zoho: kolondaki tüm kartları seç -->
+                             <v-checkbox-btn
+                  v-if="enableSelection && col.items.length > 0"
+                  class="kb-col-check"
+                  :class="{ 'is-visible': isColAllSelected(col) || isColIndeterminate(col) }"
+                  density="compact"
+                  :model-value="isColAllSelected(col)"
+                  :indeterminate="isColIndeterminate(col)"
+                  @update:model-value="v => toggleColumn(col, Boolean(v))"
+                />
+
+
+                <slot name="column-actions" :column="col" />
+              </div>
             </div>
           </div>
 
@@ -50,14 +65,21 @@
                   @dragend="onDragEnd"
                   @dragover.prevent="onCardDragOver(col.key, cardIdx, $event)"
                 >
-                  <slot
-                    name="card"
-                    :item="card"
-                    :column="col"
-                    :index="cardIdx"
+                  <!-- ✅ Kart kabuğu component’te: hover checkbox burada -->
+                  <KanbanCard
+                    :selectable="enableSelection"
                     :selected="isSelected(card)"
-                    :toggle-select="() => toggleSelected(card)"
-                  />
+                    @toggle-select="() => toggleSelected(card)"
+                  >
+                    <slot
+                      name="card"
+                      :item="card"
+                      :column="col"
+                      :index="cardIdx"
+                      :selected="isSelected(card)"
+                      :toggle-select="() => toggleSelected(card)"
+                    />
+                  </KanbanCard>
                 </div>
               </template>
 
@@ -78,6 +100,7 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import KanbanCard from '@/components/kanban/KanbanCard.vue'
 
 type KanbanColumn<T> = {
   key: string
@@ -131,6 +154,8 @@ const getItemId = (item: any) => {
   return (item as any)?.[k]
 }
 
+const enableSelection = !!props.enableSelection
+
 const isSelected = (item: any) => selectedIds.value.has(getItemId(item))
 
 const emitSelection = () => {
@@ -148,6 +173,43 @@ const toggleSelected = (item: any) => {
 
   if (next.has(id)) next.delete(id)
   else next.add(id)
+
+  selectedIds.value = next
+  emitSelection()
+}
+
+/* ✅ Kolon toplu seçim (Zoho) */
+const getColIds = (col: KanbanColumn<any>) => {
+  const k = props.itemKey ?? 'id'
+  return (col.items ?? [])
+    .map(x => (x as any)?.[k])
+    .filter((v: any) => v !== undefined && v !== null) as Array<string | number>
+}
+
+const isColAllSelected = (col: KanbanColumn<any>) => {
+  const ids = getColIds(col)
+  if (ids.length === 0) return false
+  return ids.every(id => selectedIds.value.has(id))
+}
+
+const isColIndeterminate = (col: KanbanColumn<any>) => {
+  const ids = getColIds(col)
+  if (ids.length === 0) return false
+  const any = ids.some(id => selectedIds.value.has(id))
+  const all = ids.every(id => selectedIds.value.has(id))
+  return any && !all
+}
+
+const toggleColumn = (col: KanbanColumn<any>, checked: boolean) => {
+  if (!props.enableSelection) return
+
+  const ids = getColIds(col)
+  const next = new Set(selectedIds.value)
+
+  for (const id of ids) {
+    if (checked) next.add(id)
+    else next.delete(id)
+  }
 
   selectedIds.value = next
   emitSelection()
@@ -201,7 +263,6 @@ onMounted(async () => {
 
   window.addEventListener('resize', calcScrollCols)
 
-  // ilk açılış: selection yok -> sayfaya bildir
   emitSelection()
 })
 
@@ -412,19 +473,7 @@ const onDrop = async (toKey: string, e: DragEvent) => {
   padding-right: var(--kb-scrollbar-gutter);
 }
 
-.kb-col {
-  width: 320px;
-  flex: 0 0 320px;
 
-  border: 1px solid color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
-  background: rgb(var(--v-theme-surface));
-  box-shadow: 0 var(--crm-shadow-y) var(--crm-shadow-blur)
-    color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
-
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
 
 .kb-col-wrap.kb-col--gap-right {
   margin-right: var(--crm-space-4);
@@ -470,18 +519,109 @@ const onDrop = async (toKey: string, e: DragEvent) => {
 }
 
 .kb-col-wrap.kb-col--scroll .kb-col-body {
+  /* ✅ global border-box yüzünden kartların daralmasını engelle */
+  box-sizing: content-box;
+
+  /* ✅ scrollbar gutter sağda dursun */
   margin-right: calc(var(--kb-scrollbar-gutter) * -1);
-  padding-right: var(--kb-scrollbar-gutter);
+  padding-right: 0;
+}
+/* =========================
+   ✅ Scrollbar – sadece scroll olan kolonlar
+   ========================= */
+
+/* Chrome / Edge / Safari */
+.kb-col-wrap.kb-col--scroll .kb-col-body::-webkit-scrollbar {
+  width: 12px;
 }
 
+.kb-col-wrap.kb-col--scroll .kb-col-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kb-col-wrap.kb-col--scroll .kb-col-body::-webkit-scrollbar-thumb {
+  background-color: color-mix(
+    in srgb,
+    rgb(var(--v-theme-on-surface)) 28%,
+    transparent
+  );
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.kb-col-wrap.kb-col--scroll .kb-col-body::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(
+    in srgb,
+    rgb(var(--v-theme-on-surface)) 35%,
+    transparent
+  );
+}
+
+/* Firefox */
+.kb-col-wrap.kb-col--scroll .kb-col-body {
+  scrollbar-width: auto;
+  scrollbar-color:
+    color-mix(in srgb, rgb(var(--v-theme-on-surface)) 28%, transparent)
+    transparent;
+}
+
+
+.kb-col {
+  width: 100%;
+  flex: 1 1 auto;
+
+  /* ✅ dolu kolon: “kutu” hissi yok */
+  border: none;
+  background: transparent;
+  box-shadow: none;
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+
+
+/* ✅ sadece kolon boşsa arka plan ver */
+.kb-col.kb-col--empty {
+  /* ✅ sadece boş kolonda kart/kolon kabuğu görünsün */
+  border: 1px solid color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+  background: rgb(var(--v-theme-surface));
+  box-shadow: 0 var(--crm-shadow-y) var(--crm-shadow-blur)
+    color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+}
+
+
+/* ✅ head ile ilk kart arası 10px */
 .kb-col-body-inner {
-  padding: var(--crm-space-4) 0;
+  padding: 10px 0 var(--crm-space-4) 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   min-width: 0;
   gap: var(--crm-space-3);
 }
+
+/* ✅ Kolon başlığındaki toplu seçim checkbox: hover’da görünsün, seçiliyse görünür kalsın */
+.kb-col-check {
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.kb-col-head:hover .kb-col-check,
+.kb-col-check.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.kb-col-check :deep(.v-selection-control__input) {
+  width: 18px;
+  height: 18px;
+}
+
 
 .kb-drop-line {
   width: 100%;
@@ -493,19 +633,6 @@ const onDrop = async (toKey: string, e: DragEvent) => {
 .kb-dnd-card {
   width: 100%;
   display: block;
-  box-sizing: border-box;
-  border-radius: var(--kb-card-radius);
-}
-
-.kb-dnd-card > :deep(*) {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.kb-dnd-card :deep(.kb-card) {
-  width: 100%;
-  max-width: 100%;
   box-sizing: border-box;
   border-radius: var(--kb-card-radius);
 }
@@ -531,4 +658,7 @@ const onDrop = async (toKey: string, e: DragEvent) => {
 .kb-col-footer {
   padding-top: var(--crm-space-2);
 }
+
+
 </style>
+
