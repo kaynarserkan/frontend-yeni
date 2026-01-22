@@ -34,8 +34,8 @@ uyması zorunlu kuralları tanımlar. Kurallar ihlal edilirse üretilen çıktı
 
 - Dosya sağlanmadan üretilen her çıktı **GEÇERSİZ**dir
 
-
 ---
+
 ### 0.1) Backend Değişmezlik Kuralı (SERT)
 
 - **Backend dosyaları DEĞİŞTİRİLEMEZ.**
@@ -51,19 +51,19 @@ uyması zorunlu kuralları tanımlar. Kurallar ihlal edilirse üretilen çıktı
   - yalnızca **mevcut davranışı açıklama**
   - **neden çalışmadığını analiz etme**
   - **frontend’den nasıl tetikleneceğini tarif etme**
-  ile sınırlıdır.
+    ile sınırlıdır.
 - Bu kural ihlal edilirse üretilen çıktı **GEÇERSİZ** kabul edilir.
 
 ## 1) İlk Mesaj Kuralı (SERT)
 
 Bir ekran / özellik / bugfix istendiğinde ChatGPT **tek seferde** şu dosyaları ister:
 
-1) Ana ekran dosyası (Blade / Vue / Component)
-2) Bağlı child component’ler
-3) JS / Service / API client dosyaları
-4) İlgili route dosyaları
-5) Controller / Service / Handler
-6) Bağlı ekranların eş dosyaları
+1. Ana ekran dosyası (Blade / Vue / Component)
+2. Bağlı child component’ler
+3. JS / Service / API client dosyaları
+4. İlgili route dosyaları
+5. Controller / Service / Handler
+6. Bağlı ekranların eş dosyaları
 
 Dosyalar gelmeden üretim yapılmaz.
 
@@ -94,7 +94,7 @@ Dosyalar gelmeden üretim yapılmaz.
   - sonrası
   - event handler’ları
   - init akışı
-  eksiltilmeden korunur
+    eksiltilmeden korunur
 - Eksik satır bırakmak **YASAKTIR**
 
 ---
@@ -106,7 +106,7 @@ Dosyalar gelmeden üretim yapılmaz.
   - imzalar
   - değişkenler
   - event / emit isimleri
-  **DEĞİŞTİRİLEMEZ**
+    **DEĞİŞTİRİLEMEZ**
 - Gerekirse yalnızca **ek guard / doğrulama** eklenir
 
 ### 4.1) Snake_case Key Tırnak Zorunluluğu (SERT)
@@ -159,8 +159,7 @@ Dosyalar gelmeden üretim yapılmaz.
     - güncellenecek bölümün **başlığı/çapası**
     - ilgili **eklenecek maddeler**
     - ve **hangi satırdan/bölümden sonra ekleneceği**
-    net biçimde verilir
-
+      net biçimde verilir
 
 ---
 
@@ -191,6 +190,7 @@ Patch aşağıdakileri bozmamalıdır:
 Her patch sonunda **en az 3 maddelik Hızlı Test** yazılır.
 
 Örnek:
+
 - İlgili ekran açılıyor mu?
 - API çağrısı 200 dönüyor mu?
 - Console / log hatası var mı?
@@ -204,7 +204,7 @@ Her patch sonunda **en az 3 maddelik Hızlı Test** yazılır.
   - route
   - middleware
   - prefix
-  önerilemez
+    önerilemez
 - Varsayılan kabul edilen her route **GEÇERSİZ**dir
 
 ---
@@ -225,3 +225,57 @@ Her patch sonunda **en az 3 maddelik Hızlı Test** yazılır.
 - Başlıklar, listeler ve kod blokları düzgün olmalıdır
 - Açıklama/yorum eklenmez
 - Sadece istenen içerik verilir
+
+## 11.1) Markdown (MD) Üretim Standardı — EK (SERT)
+
+Bu projede ChatGPT tarafından üretilen **tüm Markdown içerikleri** aşağıdaki kurallara **zorunlu** olarak uyar.
+
+### Kural 1 — Tek Code Block Zorunluluğu (SERT)
+
+- `.md` dosyasına yapıştırılacak içerik **TEK BİR code block** içinde verilir.
+- Aynı cevapta:
+  - birden fazla code block
+  - code block + düz metin karışımı
+    **YASAKTIR**.
+- Markdown içeriği **ham metin** olarak sunulur, render edilmeye çalışılmaz.
+
+### Kural 2 — İç İçe Code Fence YASAĞI (SERT)
+
+- Markdown içeriği **başka bir code fence (` ``` `)** içine ALINMAZ.
+- Şu kullanım **KESİNLİKLE YASAKTIR**:
+  - ```md
+
+    ```
+  - ```ts
+
+    ```
+  - ```js
+
+    ```
+- MD dosyası, editör tarafından **doğal markdown** olarak parse edilmelidir.
+
+### Kural 3 — Akış Bozan Metin YASAĞI (SERT)
+
+- Code block dışında:
+  - açıklama
+  - başlık
+  - yorum
+  - yönlendirme
+    **YAZILMAZ**.
+- “Aşağıdaki gibi”, “şimdi bunu ekle” vb. ifadeler **KULLANILMAZ**.
+
+### Kural 4 — Kopyala-Yapıştır Güvencesi (SERT)
+
+- Üretilen MD içerik:
+  - `.md` dosyasına **doğrudan yapıştırıldığında**
+  - hiçbir bölümünde format bozulması
+  - markdown’dan düz metne düşme
+  - başlık kayması
+    **YAŞATMAMALIDIR**.
+
+### İhlal Durumu
+
+- Bu standartlara uymayan Markdown çıktıları **GEÇERSİZ** kabul edilir.
+- Kullanıcı “md bozuk” dediği anda:
+  - önceki çıktı iptal edilir
+  - yeni çıktı **bu stand**

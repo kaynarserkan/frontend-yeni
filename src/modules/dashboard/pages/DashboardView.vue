@@ -142,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import OverlayTestPanel from "@/modules/dashboard/components/OverlayTestPanel.vue";
+import OverlayTestPanel from "@/playground/overlays/OverlayPanel.example.vue";
 import { useLayoutOverlayStore } from "@/core/layout/layoutOverlay.store";
 
 const overlay = useLayoutOverlayStore();
