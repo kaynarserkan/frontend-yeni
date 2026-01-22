@@ -14,39 +14,35 @@ const routes = [
       {
         path: "dashboard",
         name: "dashboard",
+        component: () => import("@/modules/dashboard/pages/DashboardView.vue"),
+      },
+      // Users (real module)
+      {
+        path: "users",
+        name: "users-list",
         components: {
-          default: () => import("@/modules/dashboard/pages/DashboardView.vue"),
-          //sidebar: () => import('@/modules/dashboard/components/DashboardKanbanSidebar.vue'),
+          default: () => import("@/modules/user/pages/UsersListView.vue"),
+          sidebar: () =>
+            import("@/modules/user/pages/profile/SidebarUsage.example.vue"),
         },
       },
       {
-        path: "playground/datatable",
-        name: "playground-datatable",
-        components: {
-          default: () =>
-            import("@/playground/datatable/DataTablePlaygroundPage.vue"),
-        },
-      },
-
-      {
-        path: "playground/profile/:id",
-        name: "playground-profile",
-        components: {
-          default: () => import("@/playground/profile/ProfileLayout.vue"),
-        },
-        redirect: { name: "playground-profile-account" },
+        path: "users/:id",
+        component: () =>
+          import("@/modules/user/pages/profile/UserProfileLayout.vue"),
         children: [
+          { path: "", redirect: { name: "users-profile-account" } },
           {
             path: "account",
-            name: "playground-profile-account",
+            name: "users-profile-account",
             component: () =>
-              import("@/playground/profile/ProfileAccountPage.vue"),
+              import("@/modules/user/pages/profile/UserAccountPage.vue"),
           },
           {
-            path: "notifications",
-            name: "playground-profile-notifications",
+            path: "roles",
+            name: "users-profile-roles",
             component: () =>
-              import("@/playground/profile/ProfileNotificationsPage.vue"),
+              import("@/modules/user/pages/profile/UserRolesPermissionsPage.vue"),
           },
         ],
       },
