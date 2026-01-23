@@ -307,6 +307,61 @@ Kural:
 
 ---
 
+---
+
+## 6.2 API Debug Checklist (404 / Boş Liste / Tenancy Hataları)
+
+Bu projede backend route’lar ve response formatları **varsayılmaz**. En sık yaşanan 3 problem:
+
+### A) 404 (Not Found) → Yanlış base path
+
+- Backend `php artisan route:list` çıktısında endpoint şu formatta olabilir:
+  - `config-service/departments` (başında `/api` olmayabilir)
+- Bu durumda frontend’de çağrı:
+  - ✅ `/config-service/departments`
+  - ❌ `/api/config-service/departments` (404 verir)
+
+Kontrol:
+
+- `php artisan route:list | findstr departments`
+- Network tab → Request URL
+
+### B) Liste boş geliyor ama request 200 → Response shape farklı
+
+Backend response’u her zaman direkt array olmayabilir.
+
+Örnek:
+
+- ✅ `{ "data": [ ... ] }`
+- ✅ `{ "data": { "data": [ ... ] } }` (paginator)
+- ✅ `[ ... ]`
+
+Kural:
+
+- Modül `*.api.ts` içinde response mutlaka normalize edilir.
+- UI tarafında “res.data array’dir” varsayımı yapılmaz.
+
+### C) Tarayıcıda URL açınca 500 (TenantCouldNotBeIdentified...) → Normal
+
+Bu endpoint’ler middleware ister:
+
+- `auth:api` → JWT (Authorization: Bearer ...)
+- `InitializeTenancyByRequestData` → tenant header
+- `permission:*` → yetki
+
+Adres çubuğundan açınca header gönderilmez → tenancy tenant bulamaz → hata.
+Doğru test:
+
+- Frontend Network request’te Request Headers kontrol edilir:
+  - `X-Tenant: reginamed`
+  - `Authorization: Bearer ...`
+
+Not:
+
+- Windows PowerShell’de `curl` alias’tır (Invoke-WebRequest). Header ile test için `curl.exe` veya `Invoke-WebRequest -Headers @{...}` kullanılmalıdır.
+
+---
+
 ## 7) Font / Shadow / Radius
 
 - Radius: yok

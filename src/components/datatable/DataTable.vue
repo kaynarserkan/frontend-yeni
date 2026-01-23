@@ -46,8 +46,12 @@
       </div>
 
       <!-- Filters row -->
-      <div class="dt-toolbar d-flex flex-column flex-md-row ga-3 align-md-center justify-space-between mt-4">
-        <div class="dt-left d-flex flex-column flex-md-row ga-3 align-md-center">
+      <div
+        class="dt-toolbar d-flex flex-column flex-md-row ga-3 align-md-center justify-space-between mt-4"
+      >
+        <div
+          class="dt-left d-flex flex-column flex-md-row ga-3 align-md-center"
+        >
           <v-text-field
             v-model="localSearch"
             :label="searchLabel"
@@ -86,9 +90,7 @@
         hover
       >
         <template #loading>
-          <div class="py-6 text-center">
-            Loading...
-          </div>
+          <div class="py-6 text-center">Loading...</div>
         </template>
 
         <template #no-data>
@@ -98,20 +100,28 @@
         </template>
 
         <!-- Name cell (avatar + name + subtitle) -->
-        <template v-if="enableNameAvatar" #[`item.${nameKeyResolved}`]="{ item }">
+        <template
+          v-if="enableNameAvatar"
+          #[`item.${nameKeyResolved}`]="{ item }"
+        >
           <div class="dt-name d-flex align-center ga-3">
             <v-avatar size="36" class="dt-avatar">
               <template v-if="item?.[avatarKeyResolved]">
                 <v-img :src="item[avatarKeyResolved]" cover />
               </template>
               <template v-else>
-                <span class="dt-initials">{{ getInitials(String(item?.[nameKeyResolved] ?? '')) }}</span>
+                <span class="dt-initials">{{
+                  getInitials(String(item?.[nameKeyResolved] ?? ""))
+                }}</span>
               </template>
             </v-avatar>
 
             <div class="dt-name-text">
               <div class="dt-name-title">{{ item?.[nameKeyResolved] }}</div>
-              <div v-if="subtitleKeyResolved && item?.[subtitleKeyResolved]" class="dt-name-sub">
+              <div
+                v-if="subtitleKeyResolved && item?.[subtitleKeyResolved]"
+                class="dt-name-sub"
+              >
                 {{ item?.[subtitleKeyResolved] }}
               </div>
             </div>
@@ -119,7 +129,10 @@
         </template>
 
         <!-- Actions cell (kebab menu) -->
-        <template v-if="actions.length" #[`item.${actionsKeyResolved}`]="{ item }">
+        <template
+          v-if="actions.length"
+          #[`item.${actionsKeyResolved}`]="{ item }"
+        >
           <div class="d-flex justify-end">
             <v-menu location="bottom end">
               <template #activator="{ props: menuProps }">
@@ -168,181 +181,193 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch } from "vue";
 
 type Header = {
-  title: string
-  key: string
-  sortable?: boolean
-  align?: 'start' | 'center' | 'end'
-  width?: string | number
-}
+  title: string;
+  key: string;
+  sortable?: boolean;
+  align?: "start" | "center" | "end";
+  width?: string | number;
+};
 
 type FilterOption = {
-  title: string
-  value: string | number
-}
+  title: string;
+  value: string | number;
+};
 
 type RowAction = {
-  key: string
-  label: string
-  danger?: boolean
-}
+  key: string;
+  label: string;
+  danger?: boolean;
+};
 
-type ExportFormat = 'csv' | 'xlsx'
+type ExportFormat = "csv" | "xlsx";
 
 const props = defineProps<{
-  title?: string
-  headers: Header[]
-  items: Record<string, any>[]
-  loading?: boolean
+  title?: string;
+  headers: readonly Header[];
+  items: readonly Record<string, any>[];
+  loading?: boolean;
 
   // Search
-  searchLabel?: string
-  searchModelValue?: string
+  searchLabel?: string;
+  searchModelValue?: string;
 
   // Filter (searchable dropdown)
-  filterKey?: string
-  filterLabel?: string
-  filterItems?: Array<string | number | FilterOption>
-  filterModelValue?: string | number | null
+  filterKey?: string;
+  filterLabel?: string;
+  filterItems?: Array<string | number | FilterOption>;
+  filterModelValue?: string | number | null;
 
   // Table options (local)
-  itemsPerPage?: number
-  emptyText?: string
+  itemsPerPage?: number;
+  emptyText?: string;
 
   // Header actions
-  showAdd?: boolean
-  addText?: string
-  showExport?: boolean
-  exportText?: string
+  showAdd?: boolean;
+  addText?: string;
+  showExport?: boolean;
+  exportText?: string;
 
   // Name cell avatar
-  enableNameAvatar?: boolean
-  nameKey?: string
-  subtitleKey?: string
-  avatarKey?: string
+  enableNameAvatar?: boolean;
+  nameKey?: string;
+  subtitleKey?: string;
+  avatarKey?: string;
 
   // Row actions column
-  actionsKey?: string
-  actions?: RowAction[]
-  showEditIcon?: boolean
-}>()
+  actionsKey?: string;
+  actions?: readonly RowAction[];
+  showEditIcon?: boolean;
+}>();
 
 const emit = defineEmits<{
-  (e: 'update:searchModelValue', v: string): void
-  (e: 'update:filterModelValue', v: string | number | null): void
+  (e: "update:searchModelValue", v: string): void;
+  (e: "update:filterModelValue", v: string | number | null): void;
 
-  (e: 'add'): void
-  (e: 'export', payload: { format: ExportFormat }): void
+  (e: "add"): void;
+  (e: "export", payload: { format: ExportFormat }): void;
 
-  (e: 'action', payload: { key: string; item: any }): void
-  (e: 'edit', item: any): void
-}>()
+  (e: "action", payload: { key: string; item: any }): void;
+  (e: "edit", item: any): void;
+}>();
 
-const localSearch = ref(props.searchModelValue ?? '')
-const localFilter = ref<string | number | null>(props.filterModelValue ?? null)
+const localSearch = ref(props.searchModelValue ?? "");
+const localFilter = ref<string | number | null>(props.filterModelValue ?? null);
 
 watch(
   () => props.searchModelValue,
-  v => {
-    if (typeof v === 'string' && v !== localSearch.value)
-      localSearch.value = v
+  (v) => {
+    if (typeof v === "string" && v !== localSearch.value) localSearch.value = v;
   },
-)
+);
 
 watch(
   () => props.filterModelValue,
-  v => {
-    if (v !== localFilter.value)
-      localFilter.value = v ?? null
+  (v) => {
+    if (v !== localFilter.value) localFilter.value = v ?? null;
   },
-)
+);
 
-watch(localSearch, v => emit('update:searchModelValue', v))
-watch(localFilter, v => emit('update:filterModelValue', v))
+watch(localSearch, (v) => emit("update:searchModelValue", v));
+watch(localFilter, (v) => emit("update:filterModelValue", v));
 
 const filterOptions = computed<FilterOption[]>(() => {
-  const raw = props.filterItems ?? []
-  return raw.map(it => {
-    if (typeof it === 'string' || typeof it === 'number')
-      return { title: String(it), value: it }
-    return { title: it.title, value: it.value }
-  })
-})
+  const raw = props.filterItems ?? [];
+  return raw.map((it) => {
+    if (typeof it === "string" || typeof it === "number")
+      return { title: String(it), value: it };
+    return { title: it.title, value: it.value };
+  });
+});
 
-const searchLabel = computed(() => props.searchLabel ?? 'Search')
-const filterLabel = computed(() => props.filterLabel ?? 'Filter')
-const itemsPerPage = computed(() => props.itemsPerPage ?? 10)
-const emptyText = computed(() => props.emptyText ?? 'No records found')
-const loading = computed(() => props.loading ?? false)
+const searchLabel = computed(() => props.searchLabel ?? "Search");
+const filterLabel = computed(() => props.filterLabel ?? "Filter");
+const itemsPerPage = computed(() => props.itemsPerPage ?? 10);
+const emptyText = computed(() => props.emptyText ?? "No records found");
+const loading = computed(() => props.loading ?? false);
 
-const showAdd = computed(() => props.showAdd ?? false)
-const addText = computed(() => props.addText ?? 'Add New Record')
-const showExport = computed(() => props.showExport ?? false)
-const exportText = computed(() => props.exportText ?? 'Export')
+const showAdd = computed(() => props.showAdd ?? false);
+const addText = computed(() => props.addText ?? "Add New Record");
+const showExport = computed(() => props.showExport ?? false);
+const exportText = computed(() => props.exportText ?? "Export");
 
-const enableNameAvatar = computed(() => props.enableNameAvatar ?? false)
-const nameKeyResolved = computed(() => (props.nameKey ?? 'name').trim())
-const subtitleKeyResolved = computed(() => (props.subtitleKey ?? '').trim() || undefined)
-const avatarKeyResolved = computed(() => (props.avatarKey ?? 'avatar').trim())
+const enableNameAvatar = computed(() => props.enableNameAvatar ?? false);
+const nameKeyResolved = computed(() => (props.nameKey ?? "name").trim());
+const subtitleKeyResolved = computed(
+  () => (props.subtitleKey ?? "").trim() || undefined,
+);
+const avatarKeyResolved = computed(() => (props.avatarKey ?? "avatar").trim());
 
-const actionsKeyResolved = computed(() => (props.actionsKey ?? 'actions').trim())
-const actions = computed<RowAction[]>(() => props.actions ?? [])
-const showEditIcon = computed(() => props.showEditIcon ?? false)
+const actionsKeyResolved = computed(() =>
+  (props.actionsKey ?? "actions").trim(),
+);
+
+// props.actions readonly geldiği için computed'ı readonly döndürüyoruz
+const actions = computed<readonly RowAction[]>(() => props.actions ?? []);
+
+const showEditIcon = computed(() => props.showEditIcon ?? false);
 
 const onExport = (format: ExportFormat) => {
-  emit('export', { format })
-}
+  emit("export", { format });
+};
 
 const getInitials = (fullName: string) => {
-  const parts = fullName
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
 
-  const first = parts[0]?.[0] ?? ''
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : ''
-  return `${first}${last}`.toUpperCase()
-}
+  const first = parts[0]?.[0] ?? "";
+  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
+  return `${first}${last}`.toUpperCase();
+};
 
 const filteredItems = computed(() => {
-  const items = Array.isArray(props.items) ? props.items : []
-  const q = (localSearch.value ?? '').toString().trim().toLowerCase()
-  const fk = props.filterKey?.toString().trim()
-  const fv = localFilter.value
+  const items = Array.isArray(props.items) ? props.items : [];
+  const q = (localSearch.value ?? "").toString().trim().toLowerCase();
+  const fk = props.filterKey?.toString().trim();
+  const fv = localFilter.value;
 
-  return items.filter(row => {
+  return items.filter((row) => {
     // Dropdown filter
-    if (fk && fv !== null && fv !== undefined && fv !== '') {
-      const rowVal = row?.[fk]
-      if (String(rowVal) !== String(fv))
-        return false
+    if (fk && fv !== null && fv !== undefined && fv !== "") {
+      const rowVal = row?.[fk];
+      if (String(rowVal) !== String(fv)) return false;
     }
 
     // Search filter (across all primitive values)
-    if (!q)
-      return true
+    if (!q) return true;
 
-    const values = Object.values(row ?? {})
-    return values.some(v => {
-      if (v === null || v === undefined)
-        return false
+    const values = Object.values(row ?? {});
+    return values.some((v) => {
+      if (v === null || v === undefined) return false;
 
-      if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
-        return String(v).toLowerCase().includes(q)
+      if (
+        typeof v === "string" ||
+        typeof v === "number" ||
+        typeof v === "boolean"
+      )
+        return String(v).toLowerCase().includes(q);
 
-      return false
-    })
-  })
-})
+      return false;
+    });
+  });
+});
 </script>
 
 <style scoped>
 .dt-card {
-  border: 1px solid color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+  border: 1px solid
+    color-mix(
+      in srgb,
+      rgb(var(--v-theme-secondary)) var(--crm-alpha-12),
+      transparent
+    );
   box-shadow: 0 var(--crm-shadow-y) var(--crm-shadow-blur)
-    color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+    color-mix(
+      in srgb,
+      rgb(var(--v-theme-secondary)) var(--crm-alpha-12),
+      transparent
+    );
   background: rgb(var(--v-theme-surface));
   color: rgb(var(--v-theme-on-surface));
 }
@@ -373,7 +398,11 @@ const filteredItems = computed(() => {
 .dt-table :deep(th) {
   font-size: var(--crm-text-sm);
   font-weight: var(--crm-fw-xbold);
-  color: color-mix(in srgb, rgb(var(--v-theme-on-surface)) var(--crm-alpha-85), transparent);
+  color: color-mix(
+    in srgb,
+    rgb(var(--v-theme-on-surface)) var(--crm-alpha-85),
+    transparent
+  );
   padding-top: calc(var(--crm-table-cell-py) - var(--crm-space-1));
   padding-bottom: calc(var(--crm-table-cell-py) - var(--crm-space-1));
   padding-left: var(--crm-table-cell-px);
@@ -385,7 +414,7 @@ const filteredItems = computed(() => {
   background: var(--crm-table-row-even) !important; /* ✅ 1,3,5... */
 }
 .dt-table :deep(tbody tr:nth-child(even)) {
-  background: var(--crm-table-row-odd) !important;  /* ✅ 2,4,6... */
+  background: var(--crm-table-row-odd) !important; /* ✅ 2,4,6... */
 }
 
 /* Header bold (Vuetify internal header title'ı da yakala) */
@@ -407,15 +436,23 @@ const filteredItems = computed(() => {
 .dt-name-title {
   font-size: var(--crm-text-md);
   font-weight: var(--crm-fw-bold);
-  color: color-mix(in srgb, rgb(var(--v-theme-on-surface)) var(--crm-alpha-88), transparent);
+  color: color-mix(
+    in srgb,
+    rgb(var(--v-theme-on-surface)) var(--crm-alpha-88),
+    transparent
+  );
   line-height: 1.15;
 }
 
 .dt-name-sub {
   font-size: var(--crm-text-xs);
-  color: color-mix(in srgb, rgb(var(--v-theme-on-surface)) var(--crm-alpha-55), transparent);
-  margin-top: 0;            /* ✅ boşluk kapandı */
-  line-height: 1.15;        /* ✅ daha sıkı */
+  color: color-mix(
+    in srgb,
+    rgb(var(--v-theme-on-surface)) var(--crm-alpha-55),
+    transparent
+  );
+  margin-top: 0; /* ✅ boşluk kapandı */
+  line-height: 1.15; /* ✅ daha sıkı */
 }
 
 .dt-initials {
@@ -425,7 +462,11 @@ const filteredItems = computed(() => {
 }
 
 .dt-action-btn {
-  color: color-mix(in srgb, rgb(var(--v-theme-on-surface)) var(--crm-alpha-70), transparent);
+  color: color-mix(
+    in srgb,
+    rgb(var(--v-theme-on-surface)) var(--crm-alpha-70),
+    transparent
+  );
 }
 
 .dt-actions :deep(.v-list-item-title) {
@@ -436,5 +477,4 @@ const filteredItems = computed(() => {
   color: rgb(var(--v-theme-accent));
   font-weight: var(--crm-fw-bold);
 }
-
 </style>

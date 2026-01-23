@@ -15,15 +15,11 @@
               :aria-label="drawerOpen ? 'Close panel' : 'Open panel'"
             >
               <v-icon>
-                {{ drawerOpen ? 'mdi-menu-open' : 'mdi-menu' }}
+                {{ drawerOpen ? "mdi-menu-open" : "mdi-menu" }}
               </v-icon>
             </v-btn>
 
-            <img
-              src="/logo.png"
-              alt="Pure CRM"
-              class="crm-logo"
-            />
+            <img src="/logo.png" alt="Pure CRM" class="crm-logo" />
 
             <nav class="d-none d-md-flex ga-5">
               <span class="crm-topnav active">Dashboard</span>
@@ -64,7 +60,7 @@
           :aria-label="drawerOpen ? 'Close panel' : 'Open panel'"
         >
           <v-icon>
-            {{ drawerOpen ? 'mdi-chevron-left' : 'mdi-chevron-right' }}
+            {{ drawerOpen ? "mdi-chevron-left" : "mdi-chevron-right" }}
           </v-icon>
         </v-btn>
       </div>
@@ -88,7 +84,7 @@
       </div>
     </v-navigation-drawer>
 
-        <!-- ✅ GLOBAL OVERLAYS (Left/Right Off-canvas + Dialog) -->
+    <!-- ✅ GLOBAL OVERLAYS (Left/Right Off-canvas + Dialog) -->
     <v-navigation-drawer
       v-model="overlay.left.open"
       location="left"
@@ -97,14 +93,26 @@
       class="crm-offcanvas"
     >
       <div class="crm-offcanvas-head">
-        <div class="crm-offcanvas-title">Panel</div>
-        <v-btn icon variant="text" class="crm-icon-btn" @click="overlay.closeLeft()" aria-label="Close left panel">
+        <div class="crm-offcanvas-title">
+          {{ overlay.left.title ?? "Panel" }}
+        </div>
+        <v-btn
+          icon
+          variant="text"
+          class="crm-icon-btn"
+          @click="overlay.closeLeft()"
+          aria-label="Close left panel"
+        >
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </div>
 
       <div class="crm-offcanvas-body">
-        <component :is="overlay.left.component" v-bind="overlay.left.props" />
+        <component
+          :is="overlay.left.component"
+          :key="overlay.left.key"
+          v-bind="overlay.left.props"
+        />
       </div>
     </v-navigation-drawer>
 
@@ -116,28 +124,52 @@
       class="crm-offcanvas"
     >
       <div class="crm-offcanvas-head">
-        <div class="crm-offcanvas-title">Panel</div>
-        <v-btn icon variant="text" class="crm-icon-btn" @click="overlay.closeRight()" aria-label="Close right panel">
+        <div class="crm-offcanvas-title">
+          {{ overlay.right.title ?? "Panel" }}
+        </div>
+        <v-btn
+          icon
+          variant="text"
+          class="crm-icon-btn"
+          @click="overlay.closeRight()"
+          aria-label="Close right panel"
+        >
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </div>
 
       <div class="crm-offcanvas-body">
-        <component :is="overlay.right.component" v-bind="overlay.right.props" />
+        <component
+          :is="overlay.right.component"
+          :key="overlay.right.key"
+          v-bind="overlay.right.props"
+        />
       </div>
     </v-navigation-drawer>
 
     <v-dialog v-model="overlay.dialog.open" max-width="760">
       <v-card>
         <div class="crm-dialog-head">
-          <div class="crm-dialog-title">{{ overlay.dialog.title ?? 'Dialog' }}</div>
-          <v-btn icon variant="text" class="crm-icon-btn" @click="overlay.closeDialog()" aria-label="Close dialog">
+          <div class="crm-dialog-title">
+            {{ overlay.dialog.title ?? "Dialog" }}
+          </div>
+          <v-btn
+            icon
+            variant="text"
+            class="crm-icon-btn"
+            @click="overlay.closeDialog()"
+            aria-label="Close dialog"
+          >
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </div>
 
         <div class="crm-dialog-body">
-          <component :is="overlay.dialog.component" v-bind="overlay.dialog.props" />
+          <component
+            :is="overlay.dialog.component"
+            :key="overlay.dialog.key"
+            v-bind="overlay.dialog.props"
+          />
         </div>
       </v-card>
     </v-dialog>
@@ -146,30 +178,28 @@
     <v-main class="crm-main">
       <router-view />
     </v-main>
-
   </v-app>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { useLayoutOverlayStore } from '@/core/layout/layoutOverlay.store'
+import { computed, ref } from "vue";
+import { useRoute } from "vue-router";
+import { useLayoutOverlayStore } from "@/core/layout/layoutOverlay.store";
 
-const overlay = useLayoutOverlayStore()
+const overlay = useLayoutOverlayStore();
 
-
-const route = useRoute()
+const route = useRoute();
 
 // Sidebar sadece route'ta named-view "sidebar" varsa görünür
 const hasSidebar = computed(() => {
-  return route.matched.some(r => Boolean((r.components as any)?.sidebar))
-})
+  return route.matched.some((r) => Boolean((r.components as any)?.sidebar));
+});
 
-const drawerOpen = ref(true)
+const drawerOpen = ref(true);
 
 const toggleDrawer = () => {
-  drawerOpen.value = !drawerOpen.value
-}
+  drawerOpen.value = !drawerOpen.value;
+};
 </script>
 
 <style scoped>
@@ -186,8 +216,18 @@ const toggleDrawer = () => {
 
 /* TOPBAR */
 .crm-topbar {
-  border-bottom: 1px solid color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
-  box-shadow: 0 10px 30px color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+  border-bottom: 1px solid
+    color-mix(
+      in srgb,
+      rgb(var(--v-theme-secondary)) var(--crm-alpha-12),
+      transparent
+    );
+  box-shadow: 0 10px 30px
+    color-mix(
+      in srgb,
+      rgb(var(--v-theme-secondary)) var(--crm-alpha-12),
+      transparent
+    );
 }
 
 .crm-header-inner {
@@ -201,12 +241,20 @@ const toggleDrawer = () => {
 }
 
 .crm-icon-btn {
-  color: color-mix(in srgb, rgb(var(--v-theme-on-surface)) var(--crm-alpha-70), transparent);
+  color: color-mix(
+    in srgb,
+    rgb(var(--v-theme-on-surface)) var(--crm-alpha-70),
+    transparent
+  );
 }
 
 .crm-topnav {
   font-size: var(--crm-text-sm);
-  color: color-mix(in srgb, rgb(var(--v-theme-on-surface)) var(--crm-alpha-70), transparent);
+  color: color-mix(
+    in srgb,
+    rgb(var(--v-theme-on-surface)) var(--crm-alpha-70),
+    transparent
+  );
   cursor: pointer;
   padding: var(--crm-space-2) 0;
 }
@@ -228,9 +276,19 @@ const toggleDrawer = () => {
 
 /* SIDEBAR (page-specific) */
 .crm-sidebar {
-  border-right: 1px solid color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+  border-right: 1px solid
+    color-mix(
+      in srgb,
+      rgb(var(--v-theme-secondary)) var(--crm-alpha-12),
+      transparent
+    );
   background: rgb(var(--v-theme-surface));
-  box-shadow: 10px 0 30px color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+  box-shadow: 10px 0 30px
+    color-mix(
+      in srgb,
+      rgb(var(--v-theme-secondary)) var(--crm-alpha-12),
+      transparent
+    );
 }
 
 .crm-rail-handle {
@@ -238,11 +296,16 @@ const toggleDrawer = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+  border-bottom: 1px solid
+    color-mix(
+      in srgb,
+      rgb(var(--v-theme-secondary)) var(--crm-alpha-12),
+      transparent
+    );
 }
 
 .crm-sidebar {
-  border-right: 1px solid rgba(6, 30, 41, 0.10);
+  border-right: 1px solid rgba(6, 30, 41, 0.1);
   background: #ffffff;
   box-shadow: 10px 0 30px rgba(6, 30, 41, 0.06);
 }
@@ -252,8 +315,6 @@ const toggleDrawer = () => {
   overflow-y: auto;
   overflow-x: hidden;
 }
-
-
 
 .crm-rail {
   padding-top: var(--crm-space-2);
@@ -266,7 +327,11 @@ const toggleDrawer = () => {
 .crm-rail-btn {
   width: 44px;
   height: 44px;
-  color: color-mix(in srgb, rgb(var(--v-theme-primary)) var(--crm-alpha-88), transparent);
+  color: color-mix(
+    in srgb,
+    rgb(var(--v-theme-primary)) var(--crm-alpha-88),
+    transparent
+  );
 }
 
 /* ✅ Off-canvas (global) */
@@ -280,7 +345,12 @@ const toggleDrawer = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+  border-bottom: 1px solid
+    color-mix(
+      in srgb,
+      rgb(var(--v-theme-secondary)) var(--crm-alpha-12),
+      transparent
+    );
 }
 
 .crm-offcanvas-title {
@@ -300,7 +370,12 @@ const toggleDrawer = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid color-mix(in srgb, rgb(var(--v-theme-secondary)) var(--crm-alpha-12), transparent);
+  border-bottom: 1px solid
+    color-mix(
+      in srgb,
+      rgb(var(--v-theme-secondary)) var(--crm-alpha-12),
+      transparent
+    );
 }
 
 .crm-dialog-title {
@@ -312,6 +387,4 @@ const toggleDrawer = () => {
 .crm-dialog-body {
   padding: var(--crm-space-4);
 }
-
 </style>
-

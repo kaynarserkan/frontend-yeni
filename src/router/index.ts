@@ -16,16 +16,30 @@ const routes = [
         name: "dashboard",
         component: () => import("@/modules/dashboard/pages/DashboardView.vue"),
       },
-      // Users (real module)
+
+      // Departments (config-service)
+      {
+        path: "departments",
+        name: "departments-list",
+        component: () =>
+          import("@/modules/departments/pages/DepartmentsListView.vue"),
+      },
+
+      // Roles
+      {
+        path: "roles",
+        name: "roles-list",
+        component: () => import("@/modules/roles/pages/RolesListView.vue"),
+      },
+
+      // Users (user-service)
       {
         path: "users",
         name: "users-list",
-        components: {
-          default: () => import("@/modules/user/pages/UsersListView.vue"),
-          sidebar: () =>
-            import("@/modules/user/pages/profile/SidebarUsage.example.vue"),
-        },
+        component: () => import("@/modules/user/pages/UsersListView.vue"),
       },
+
+      // User profile (tabs)
       {
         path: "users/:id",
         component: () =>
@@ -39,8 +53,8 @@ const routes = [
               import("@/modules/user/pages/profile/UserAccountPage.vue"),
           },
           {
-            path: "roles",
-            name: "users-profile-roles",
+            path: "roles-permissions",
+            name: "users-profile-roles-permissions",
             component: () =>
               import("@/modules/user/pages/profile/UserRolesPermissionsPage.vue"),
           },
