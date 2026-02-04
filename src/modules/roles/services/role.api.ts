@@ -16,6 +16,7 @@ export type Role = {
 export type RoleUpsertPayload = {
   name: string;
   title?: string | null;
+  permissions?: string[];
 };
 
 const BASE = "/user-service/roles";

@@ -1,6 +1,8 @@
 <template>
   <div class="rp">
-    <v-alert v-if="err" type="error" variant="tonal" class="mb-4">
+    <div ref="topRef" />
+
+    <v-alert v-if="err" type="error" variant="tonal" class="mb-4 rp-error">
       {{ err }}
     </v-alert>
 
@@ -12,10 +14,6 @@
       hide-details
       class="mb-2"
     />
-
-    <div class="rp-hint mb-4">
-      Name otomatik üretilecek: <strong>{{ form.name || "—" }}</strong>
-    </div>
 
     <div class="rp-perm-head">
       <div class="rp-perm-title">Permissions</div>
@@ -71,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useLayoutOverlayStore } from "@/core/layout/layoutOverlay.store";
 import { listPermissions, type Permission } from "../services/permissions.api";
 import {
@@ -92,9 +90,16 @@ const props = defineProps<{
 
 const overlay = useLayoutOverlayStore();
 
+const topRef = ref<HTMLElement | null>(null);
+
 const loading = ref(false);
 const saving = ref(false);
 const err = ref("");
+
+const scrollToTop = async () => {
+  await nextTick();
+  topRef.value?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
 const all = ref<Permission[]>([]);
 const selected = ref<string[]>([]);
@@ -221,41 +226,56 @@ const onSave = async () => {
   const title = (form.value.title ?? "").toString().trim();
   if (!title) {
     err.value = "Role title is required.";
+    await scrollToTop();
     return;
   }
 
   const name = slugifyRoleName(title);
   if (!name) {
     err.value = "Role name could not be generated.";
+    await scrollToTop();
     return;
   }
 
   saving.value = true;
   err.value = "";
-
   try {
+    const perms = Array.from(
+      new Set((selected.value ?? []).map((s) => s.trim()).filter(Boolean)),
+    );
+
+    // Backend artık create için permissions zorunlu.
+    if (!perms.length) {
+      err.value = "At least 1 permission must be selected.";
+      await scrollToTop();
+      return;
+    }
+
     let saved: Role;
 
     if (props.mode === "create") {
-      saved = await createRole({ name, title });
+      // Create endpoint artık permissions bekliyor → burada gönderiyoruz.
+      // Create içinde sync yapıldığı için ayrıca sync çağırmıyoruz.
+      saved = await createRole({ name, title, permissions: perms });
     } else {
       const id = props.role?.id;
       if (!id) {
         err.value = "Role id missing.";
+        await scrollToTop();
         return;
       }
-      saved = await updateRole(id, { name, title });
-    }
 
-    const perms = Array.from(
-      new Set((selected.value ?? []).map((s) => s.trim()).filter(Boolean)),
-    );
-    await syncRolePermissions(saved.id, perms);
+      saved = await updateRole(id, { name, title });
+
+      // Edit için permissions sync ayrı endpoint
+      await syncRolePermissions(saved.id, perms);
+    }
 
     closeSelf();
     props.onSaved?.();
   } catch (e: any) {
     err.value = e?.response?.data?.message ?? e?.message ?? "Save failed.";
+    await scrollToTop();
   } finally {
     saving.value = false;
   }
@@ -266,6 +286,11 @@ const onSave = async () => {
 .rp {
   display: flex;
   flex-direction: column;
+}
+
+.rp-error {
+  border: 1px solid rgba(var(--v-theme-error), var(--crm-alpha-30));
+  background: rgba(var(--v-theme-error), var(--crm-alpha-08));
 }
 
 .rp-perm-head {
