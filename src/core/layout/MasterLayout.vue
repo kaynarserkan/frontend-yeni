@@ -20,22 +20,79 @@
             </v-btn>
 
             <img src="/logo.png" alt="Pure CRM" class="crm-logo" />
+                     <nav class="d-none d-md-flex ga-5">
+              <RouterLink
+                :to="{ name: 'dashboard' }"
+                class="crm-topnav"
+                :class="{ active: isTopActive('dashboard') }"
+              >
+                Dashboard
+              </RouterLink>
 
-            <nav class="d-none d-md-flex ga-5">
-              <span class="crm-topnav active">Dashboard</span>
-              <span class="crm-topnav">Leads</span>
-              <span class="crm-topnav">Users</span>
-              <span class="crm-topnav">Appointments</span>
+              <v-menu location="bottom start" offset="6">
+                <template #activator="{ props: menuProps }">
+                  <v-btn
+                    v-bind="menuProps"
+                    variant="text"
+                    class="crm-topnav crm-topnav-btn"
+                    :class="{ active: isAdminActive() }"
+                  >
+                    Administration
+                    <v-icon end size="18">mdi-chevron-down</v-icon>
+                  </v-btn>
+                </template>
+
+                <v-list density="comfortable" min-width="240">
+                  <v-list-item
+                    :to="{ name: 'departments-list' }"
+                    title="Departments"
+                    subtitle="Organization structure"
+                  />
+                  <v-list-item
+                    :to="{ name: 'roles-list' }"
+                    title="Roles & Permissions"
+                    subtitle="Access control"
+                  />
+                  <v-list-item
+                    :to="{ name: 'users-list' }"
+                    title="Users"
+                    subtitle="User management"
+                  />
+                </v-list>
+              </v-menu>
             </nav>
+
+
           </div>
 
-          <!-- SAĞ: Profil -->
+                  <!-- SAĞ: Profil -->
           <div class="d-flex align-center ga-3">
-            <span class="crm-muted d-none d-md-inline">Admin Panel</span>
-            <v-avatar size="34" class="crm-avatar">
-              <span class="crm-avatar-text">S</span>
-            </v-avatar>
+            <v-menu location="bottom end" offset="8">
+              <template #activator="{ props: menuProps }">
+                <div v-bind="menuProps" class="crm-user-activator">
+                  <span class="crm-muted d-none d-md-inline">Admin Panel</span>
+                  <v-avatar size="34" class="crm-avatar">
+                    <span class="crm-avatar-text">{{ userInitial }}</span>
+                  </v-avatar>
+                </div>
+              </template>
+
+              <v-list density="comfortable" min-width="220">
+                <v-list-item
+                  :title="username"
+                  subtitle="Kullanıcı adı"
+                  prepend-icon="mdi-account"
+                />
+                <v-divider />
+                <v-list-item
+                  title="Log out"
+                  prepend-icon="mdi-logout"
+                  @click="onLogout"
+                />
+              </v-list>
+            </v-menu>
           </div>
+
         </div>
       </div>
     </v-app-bar>
@@ -182,13 +239,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { useRoute } from "vue-router";
+import { computed, onMounted, ref } from "vue";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useLayoutOverlayStore } from "@/core/layout/layoutOverlay.store";
 
 const overlay = useLayoutOverlayStore();
 
 const route = useRoute();
+const router = useRouter();
 
 // Sidebar sadece route'ta named-view "sidebar" varsa görünür
 const hasSidebar = computed(() => {
@@ -200,7 +258,62 @@ const drawerOpen = ref(true);
 const toggleDrawer = () => {
   drawerOpen.value = !drawerOpen.value;
 };
+
+// Top menü active helper
+const isTopActive = (key: "dashboard") => {
+  const name = (route.name ?? "").toString();
+  if (key === "dashboard") return name === "dashboard";
+  return false;
+};
+
+// Administration dropdown active helper
+const isAdminActive = () => {
+  const name = (route.name ?? "").toString();
+  return (
+    name === "departments-list" ||
+    name === "roles-list" ||
+    name === "users-list" ||
+    name.startsWith("users-")
+  );
+};
+
+// Right user menu (placeholder + safe fallback)
+const username = ref("User");
+const userInitial = computed(() => {
+  const s = (username.value ?? "").toString().trim();
+  return s ? s.charAt(0).toUpperCase() : "U";
+});
+
+onMounted(async () => {
+  // Auth store varsa kullanıcı adını buradan çekmeye çalışır; yoksa placeholder kalır.
+  try {
+    const mod: any = await import("@/core/auth/auth.store");
+    const auth = mod?.useAuthStore?.();
+    const u = auth?.user;
+    const n =
+      (u?.name ?? u?.username ?? u?.email ?? "").toString().trim() || "User";
+    username.value = n;
+  } catch {
+    // ignore
+  }
+});
+
+const onLogout = async () => {
+  // Auth store varsa logout çağırmayı dener, yoksa login'e yönlendirir.
+  try {
+    const mod: any = await import("@/core/auth/auth.store");
+    const auth = mod?.useAuthStore?.();
+    if (typeof auth?.logout === "function") {
+      await auth.logout();
+    }
+  } catch {
+    // ignore
+  } finally {
+    router.push({ name: "login" });
+  }
+};
 </script>
+
 
 <style scoped>
 /* Genel: radius yok */
@@ -257,7 +370,25 @@ const toggleDrawer = () => {
   );
   cursor: pointer;
   padding: var(--crm-space-2) 0;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
+
+/* v-btn activator da aynı topnav görünümünü alsın */
+.crm-topnav-btn :deep(.v-btn__content) {
+  gap: 6px;
+}
+
+/* Right user activator */
+.crm-user-activator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--crm-space-3);
+  cursor: pointer;
+}
+
+
 
 .crm-topnav.active {
   color: rgb(var(--v-theme-primary));

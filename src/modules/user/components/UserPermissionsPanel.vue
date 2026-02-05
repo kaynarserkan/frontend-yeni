@@ -4,7 +4,7 @@ import { syncUserPermissions, type User } from "../services/user.api";
 import {
   listPermissions,
   type Permission,
-} from "@/modules/permissions/services/permissions.api";
+} from "@/modules/roles/services/permissions.api";
 
 const props = defineProps<{ user: User }>();
 const emit = defineEmits<{ (e: "updated", u: User): void }>();

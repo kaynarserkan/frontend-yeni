@@ -1,93 +1,174 @@
 <template>
-  <v-card class="ps-card" variant="elevated">
-    <div class="ps-card__top">
-      <div class="ps-card__avatar">
-        <slot name="avatar" />
+  <v-card variant="flat" class="psc">
+    <!-- avatar -->
+    <div class="psc-avatar-wrap">
+      <div class="psc-avatar">
+        <template v-if="loading">
+          <v-skeleton-loader type="avatar" />
+        </template>
+
+        <template v-else>
+          <v-avatar size="84" class="psc-va" color="primary" variant="tonal">
+            <v-img v-if="avatarUrl" :src="avatarUrl" cover />
+            <span v-else class="psc-initials">{{ initials }}</span>
+          </v-avatar>
+        </template>
       </div>
 
-      <div class="ps-card__title">
-        <slot name="title" />
-      </div>
+      <div class="psc-avatar-actions" v-if="!loading">
+        <input
+          ref="fileRef"
+          type="file"
+          accept="image/*"
+          class="d-none"
+          @change="onFilePicked"
+        />
 
-      <div class="ps-card__subtitle">
-        <slot name="subtitle" />
+        <template v-if="!avatarUrl">
+          <v-btn size="small" variant="tonal" @click="pickFile">
+            Ekle
+          </v-btn>
+        </template>
+
+        <template v-else>
+          <v-btn size="small" variant="tonal" @click="pickFile">
+            Değiştir
+          </v-btn>
+          <v-btn size="small" variant="text" color="error" @click="onDelete">
+            Sil
+          </v-btn>
+        </template>
       </div>
     </div>
 
-    <div v-if="$slots.stats" class="ps-card__stats">
-      <slot name="stats" />
+    <v-divider class="my-4" />
+
+    <!-- identity -->
+    <div class="psc-body">
+      <template v-if="loading">
+        <v-skeleton-loader type="text" class="mb-2" />
+        <v-skeleton-loader type="text" width="70%" class="mb-2" />
+        <v-skeleton-loader type="text" width="55%" />
+      </template>
+
+      <template v-else>
+        <div class="psc-name">{{ name }}</div>
+        <div class="psc-sub">{{ email }}</div>
+
+        <div v-if="phone" class="psc-sub mt-2">
+          {{ phone }}
+        </div>
+      </template>
     </div>
 
-    <v-divider class="ps-card__divider" />
-
-    <div class="ps-card__details">
-      <slot name="details" />
-    </div>
-
-    <div v-if="$slots.actions" class="ps-card__actions">
-      <slot name="actions" />
+    <!-- extra slot (opsiyonel) -->
+    <div v-if="$slots.default" class="mt-4">
+      <slot />
     </div>
   </v-card>
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from "vue";
+
 defineOptions({ name: "ProfileSidebarCard" });
+
+const props = defineProps<{
+  loading?: boolean;
+
+  name?: string;
+  email?: string;
+  phone?: string | null;
+
+  avatarUrl?: string | null;
+}>();
+
+const emit = defineEmits<{
+  (e: "upload", file: File): void;
+  (e: "delete"): void;
+}>();
+
+const fileRef = ref<HTMLInputElement | null>(null);
+
+const loading = computed(() => Boolean(props.loading));
+const name = computed(() => String(props.name ?? "").trim());
+const email = computed(() => String(props.email ?? "").trim());
+const phone = computed(() => (props.phone ?? "").toString().trim());
+const avatarUrl = computed(() => (props.avatarUrl ?? "").toString().trim());
+
+const initials = computed(() => {
+  const n = name.value;
+  if (!n) return "U";
+  const parts = n.split(/\s+/).filter(Boolean);
+  const a = (parts[0]?.[0] ?? "U").toUpperCase();
+  const b = (parts[1]?.[0] ?? "").toUpperCase();
+  return (a + b).slice(0, 2);
+});
+
+const pickFile = () => {
+  fileRef.value?.click();
+};
+
+const onFilePicked = (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const f = input.files?.[0];
+  input.value = "";
+  if (!f) return;
+  emit("upload", f);
+};
+
+const onDelete = () => {
+  emit("delete");
+};
 </script>
 
 <style scoped>
-.ps-card {
-  padding: var(--crm-space-6);
-  border-radius: var(--crm-radius-1);
-  background: rgb(var(--v-theme-surface));
+.psc {
+  padding: var(--crm-space-4);
+}
+
+.psc-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--crm-space-2);
+}
+
+.psc-avatar {
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+}
+
+.psc-va {
   border: 1px solid rgba(var(--v-theme-on-surface), var(--crm-alpha-12));
 }
 
-.ps-card__top {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--crm-space-3);
+.psc-initials {
+  font-weight: var(--crm-fw-xbold);
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  color: rgb(var(--v-theme-primary));
 }
 
-.ps-card__avatar {
+.psc-avatar-actions {
   display: flex;
+  gap: var(--crm-space-2);
   align-items: center;
-  justify-content: center;
 }
 
-.ps-card__title {
-  font-size: var(--crm-text-lg);
-  font-weight: var(--crm-fw-bold);
-  line-height: 1.2;
+.psc-body {
   text-align: center;
 }
 
-.ps-card__subtitle {
+.psc-name {
+  font-size: var(--crm-text-lg);
+  font-weight: var(--crm-fw-xbold);
+}
+
+.psc-sub {
   font-size: var(--crm-text-sm);
-  opacity: var(--crm-alpha-70);
-}
-
-.ps-card__stats {
-  margin-top: var(--crm-space-5);
-}
-
-/* Divider daha “light” dursun */
-.ps-card__divider {
-  margin: var(--crm-space-5) 0;
-  opacity: var(--crm-alpha-70);
-}
-
-/* Details alanı: satırlar biraz daha ferah */
-.ps-card__details {
-  display: flex;
-  flex-direction: column;
-  gap: var(--crm-space-3);
-}
-
-.ps-card__actions {
-  margin-top: var(--crm-space-6);
-  display: flex;
-  gap: var(--crm-space-3);
-  justify-content: center;
+  opacity: var(--crm-alpha-75);
 }
 </style>

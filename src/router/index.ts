@@ -44,7 +44,7 @@ const routes = [
         path: "users/:id",
         component: () =>
           import("@/modules/user/pages/profile/UserProfileLayout.vue"),
-        children: [
+              children: [
           { path: "", redirect: { name: "users-profile-account" } },
           {
             path: "account",
@@ -58,7 +58,16 @@ const routes = [
             component: () =>
               import("@/modules/user/pages/profile/UserRolesPermissionsPage.vue"),
           },
+          {
+            path: "effective-permissions",
+            name: "users-profile-effective-permissions",
+            component: () =>
+              import(
+                "@/modules/user/pages/profile/UserEffectivePermissionsPage.vue"
+              ),
+          },
         ],
+
       },
     ],
   },
