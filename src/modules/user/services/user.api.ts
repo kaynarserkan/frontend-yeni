@@ -77,7 +77,6 @@ export type User = {
   departments: Department[];
 };
 
-
 export type Paginated<T> = {
   data: T[];
   meta?: Record<string, any>;
@@ -153,7 +152,11 @@ export const listUserDepartments = async (
   id: number | string,
 ): Promise<{ data: Department[] }> => {
   const res = await api.get(`/user-service/users/${id}/departments`);
-  return res.data as { data: Department[] };
+
+  const data = res.data as any;
+  const rows = data?.data;
+
+  return { data: Array.isArray(rows) ? (rows as Department[]) : [] };
 };
 
 export const syncUserDepartments = async (
@@ -163,7 +166,12 @@ export const syncUserDepartments = async (
   const res = await api.post(`/user-service/users/${id}/departments`, {
     departments,
   });
-  return res.data as Department[];
+
+  // backend: { message, departments: { data: [...] } }
+  const data = res.data as any;
+  const rows = data?.departments?.data;
+
+  return Array.isArray(rows) ? (rows as Department[]) : [];
 };
 
 // Profile deactivate
@@ -259,4 +267,3 @@ export const deleteUserAvatar = async (id: number | string): Promise<any> => {
   const res = await api.delete(`/user-service/users/${id}/avatar`);
   return res.data;
 };
-

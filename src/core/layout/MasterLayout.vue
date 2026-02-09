@@ -20,7 +20,7 @@
             </v-btn>
 
             <img src="/logo.png" alt="Pure CRM" class="crm-logo" />
-                     <nav class="d-none d-md-flex ga-5">
+            <nav class="d-none d-md-flex ga-5">
               <RouterLink
                 :to="{ name: 'dashboard' }"
                 class="crm-topnav"
@@ -29,7 +29,7 @@
                 Dashboard
               </RouterLink>
 
-              <v-menu location="bottom start" offset="6">
+              <v-menu v-if="auth.isAdmin" location="bottom start" offset="6">
                 <template #activator="{ props: menuProps }">
                   <v-btn
                     v-bind="menuProps"
@@ -61,11 +61,9 @@
                 </v-list>
               </v-menu>
             </nav>
-
-
           </div>
 
-                  <!-- SAĞ: Profil -->
+          <!-- SAĞ: Profil -->
           <div class="d-flex align-center ga-3">
             <v-menu location="bottom end" offset="8">
               <template #activator="{ props: menuProps }">
@@ -92,7 +90,6 @@
               </v-list>
             </v-menu>
           </div>
-
         </div>
       </div>
     </v-app-bar>
@@ -242,8 +239,10 @@
 import { computed, onMounted, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useLayoutOverlayStore } from "@/core/layout/layoutOverlay.store";
+import { useAuthStore } from "@/core/auth/auth.store";
 
 const overlay = useLayoutOverlayStore();
+const auth = useAuthStore();
 
 const route = useRoute();
 const router = useRouter();
@@ -276,25 +275,20 @@ const isAdminActive = () => {
     name.startsWith("users-")
   );
 };
+// Right user menu (reactive)
+const username = computed(() => auth.displayName);
+const userInitial = computed(() => auth.userInitial);
 
-// Right user menu (placeholder + safe fallback)
-const username = ref("User");
-const userInitial = computed(() => {
-  const s = (username.value ?? "").toString().trim();
-  return s ? s.charAt(0).toUpperCase() : "U";
-});
-
+// ✅ token var ama user yoksa: açılışta me'yi çek
 onMounted(async () => {
-  // Auth store varsa kullanıcı adını buradan çekmeye çalışır; yoksa placeholder kalır.
-  try {
-    const mod: any = await import("@/core/auth/auth.store");
-    const auth = mod?.useAuthStore?.();
-    const u = auth?.user;
-    const n =
-      (u?.name ?? u?.username ?? u?.email ?? "").toString().trim() || "User";
-    username.value = n;
-  } catch {
-    // ignore
+  // ✅ token var ama (user yoksa) veya (user var ama roles gelmemişse): me + user detail ile zenginleştir
+  const roles =
+    auth.user && Array.isArray((auth.user as any)?.roles)
+      ? (auth.user as any).roles
+      : [];
+
+  if (auth.isLoggedIn && (!auth.user || roles.length === 0)) {
+    await auth.fetchMe();
   }
 });
 
@@ -313,7 +307,6 @@ const onLogout = async () => {
   }
 };
 </script>
-
 
 <style scoped>
 /* Genel: radius yok */
@@ -387,8 +380,6 @@ const onLogout = async () => {
   gap: var(--crm-space-3);
   cursor: pointer;
 }
-
-
 
 .crm-topnav.active {
   color: rgb(var(--v-theme-primary));

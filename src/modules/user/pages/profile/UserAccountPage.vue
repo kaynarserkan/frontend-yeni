@@ -22,18 +22,13 @@
       <div v-else>
         <div class="gi-grid">
           <div class="gi-row">
-            <div class="gi-k">Title</div>
-            <div class="gi-v">{{ profile?.title ?? "—" }}</div>
+            <div class="gi-k">Name</div>
+            <div class="gi-v">{{ user?.name ?? "—" }}</div>
           </div>
 
           <div class="gi-row">
-            <div class="gi-k">Specialty</div>
-            <div class="gi-v">{{ profile?.specialty ?? "—" }}</div>
-          </div>
-
-          <div class="gi-row">
-            <div class="gi-k">Daily Capacity</div>
-            <div class="gi-v">{{ profile?.daily_capacity ?? "—" }}</div>
+            <div class="gi-k">Email</div>
+            <div class="gi-v">{{ user?.email ?? "—" }}</div>
           </div>
 
           <div class="gi-row">
@@ -71,7 +66,9 @@
             <div class="gi-v">
               <div class="d-flex flex-wrap ga-2">
                 <v-chip
-                  v-for="s in (Array.isArray(profile?.skills) ? profile!.skills! : [])"
+                  v-for="s in Array.isArray(profile?.skills)
+                    ? profile!.skills!
+                    : []"
                   :key="s"
                   size="small"
                   variant="tonal"
@@ -80,7 +77,10 @@
                   {{ s }}
                 </v-chip>
                 <span
-                  v-if="!Array.isArray(profile?.skills) || profile!.skills!.length === 0"
+                  v-if="
+                    !Array.isArray(profile?.skills) ||
+                    profile!.skills!.length === 0
+                  "
                   class="text-caption opacity-70"
                 >
                   —
@@ -205,7 +205,9 @@
     <v-dialog v-model="editOpen" max-width="760">
       <v-card>
         <v-card-title class="d-flex align-center justify-space-between">
-          <div class="text-subtitle-1 font-weight-bold">Genel Bilgiler — Düzenle</div>
+          <div class="text-subtitle-1 font-weight-bold">
+            Genel Bilgiler — Düzenle
+          </div>
           <v-btn icon="mdi-close" variant="text" @click="editOpen = false" />
         </v-card-title>
 
@@ -215,17 +217,6 @@
           </v-alert>
 
           <div class="ed-grid">
-            <v-text-field v-model="form.title" label="Title" variant="outlined" hide-details />
-            <v-text-field v-model="form.specialty" label="Specialty" variant="outlined" hide-details />
-
-            <v-text-field
-              v-model="form.daily_capacity"
-              label="Daily Capacity"
-              type="number"
-              variant="outlined"
-              hide-details
-            />
-
             <v-text-field
               v-model="form.phone_number"
               label="Phone Number"
@@ -241,8 +232,18 @@
               hide-details
             />
 
-            <v-text-field v-model="form.national_id" label="National ID" variant="outlined" hide-details />
-            <v-text-field v-model="form.passport_id" label="Passport ID" variant="outlined" hide-details />
+            <v-text-field
+              v-model="form.national_id"
+              label="National ID"
+              variant="outlined"
+              hide-details
+            />
+            <v-text-field
+              v-model="form.passport_id"
+              label="Passport ID"
+              variant="outlined"
+              hide-details
+            />
 
             <v-text-field
               v-model="form.emergency_contact_name"
@@ -339,7 +340,9 @@ const refresh = async () => {
   await fetchProfile();
 };
 
-const roles = computed(() => (Array.isArray(user.value?.roles) ? user.value.roles : []));
+const roles = computed(() =>
+  Array.isArray(user.value?.roles) ? user.value.roles : [],
+);
 const directPermissions = computed(() =>
   Array.isArray(user.value?.permissions) ? user.value.permissions : [],
 );
@@ -372,10 +375,7 @@ const editErr = ref("");
 const savingProfile = ref(false);
 
 const form = ref({
-  title: "",
-  specialty: "",
   skills_text: "",
-  daily_capacity: "" as any,
 
   address_line: "",
   phone_number: "",
@@ -392,14 +392,6 @@ const form = ref({
 const openEdit = () => {
   editErr.value = "";
   const p = profile.value;
-
-  form.value.title = String(p?.title ?? "");
-  form.value.specialty = String(p?.specialty ?? "");
-
-  form.value.daily_capacity =
-    p?.daily_capacity === null || p?.daily_capacity === undefined
-      ? ""
-      : String(p.daily_capacity);
 
   form.value.address_line = String(p?.address_line ?? "");
   form.value.phone_number = String(p?.phone_number ?? "");
@@ -430,15 +422,8 @@ const saveProfile = async () => {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const dailyCapRaw = String(form.value.daily_capacity ?? "").trim();
-    const daily_capacity =
-      dailyCapRaw === "" ? null : Number.isFinite(Number(dailyCapRaw)) ? Number(dailyCapRaw) : null;
-
     await updateUserProfile(userId.value, {
-      title: form.value.title.trim() || null,
-      specialty: form.value.specialty.trim() || null,
       skills: skills.length ? skills : [],
-      daily_capacity,
 
       address_line: form.value.address_line.trim() || null,
       phone_number: form.value.phone_number.trim() || null,
@@ -447,7 +432,8 @@ const saveProfile = async () => {
       passport_id: form.value.passport_id.trim() || null,
 
       emergency_contact_name: form.value.emergency_contact_name.trim() || null,
-      emergency_contact_phone: form.value.emergency_contact_phone.trim() || null,
+      emergency_contact_phone:
+        form.value.emergency_contact_phone.trim() || null,
 
       is_active: Boolean(form.value.is_active),
     });

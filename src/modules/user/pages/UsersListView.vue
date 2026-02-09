@@ -6,8 +6,6 @@ import { useLayoutOverlayStore } from "@/core/layout/layoutOverlay.store";
 import UserUpsertPanel from "../components/UserUpsertPanel.vue";
 import { deleteUser, listUsers, type User } from "../services/user.api";
 
-
-
 defineOptions({ name: "UsersListView" });
 
 const router = useRouter();
@@ -33,7 +31,6 @@ const headers = [
   },
 ] as const;
 
-
 // ✅ Route name'e bağlı kalma: path ile git (name yoksa da çalışır)
 const goProfile = (u: User) => {
   router.push({ path: `/users/${u.id}` });
@@ -48,6 +45,7 @@ const openCreate = () => {
       side: "right",
       user: null,
       onSaved: async () => {
+        searchModelValue.value = "";
         await fetchUsers();
       },
     },
@@ -63,6 +61,8 @@ const openEdit = (u: User) => {
       side: "left",
       user: u,
       onSaved: async () => {
+        // edit sonrası search'i bozmayabilir; ama tutarlı olsun istersen resetle
+        // searchModelValue.value = "";
         await fetchUsers();
       },
     },
@@ -106,8 +106,6 @@ const onRowAction = (payload: { key: string; item: User }) => {
   }
 };
 
-
-
 const fetchUsers = async () => {
   loading.value = true;
   errorText.value = "";
@@ -133,67 +131,79 @@ onMounted(fetchUsers);
     <v-alert v-if="errorText" type="error" variant="tonal" class="mb-4">
       {{ errorText }}
     </v-alert>
-<DataTable
-  title="Users"
-  :headers="headers"
-  :items="items"
-  :loading="loading"
-  v-model:searchModelValue="searchModelValue"
-  search-label="Search user"
-  :show-add="true"
-  add-text="New User"
-  :show-export="false"
-  empty-text="No users found"
-  :actions="rowActions"
-  @add="openCreate"
-  @action="onRowAction"
->
-  <template #item.name="{ item }">
-    <span
-      role="link"
-      tabindex="0"
-      class="u-link"
-      @click="goProfile(item)"
-      @keydown.enter="goProfile(item)"
-      @keydown.space.prevent="goProfile(item)"
+    <DataTable
+      title="Users"
+      :headers="headers"
+      :items="items"
+      :loading="loading"
+      v-model:searchModelValue="searchModelValue"
+      search-label="Search user"
+      :show-add="true"
+      add-text="New User"
+      :show-export="false"
+      empty-text="No users found"
+      :actions="rowActions"
+      @add="openCreate"
+      @action="onRowAction"
     >
-      {{ item.name }}
-    </span>
-  </template>
+      <template #item.name="{ item }">
+        <div class="d-flex align-center ga-2">
+          <span
+            role="link"
+            tabindex="0"
+            class="u-link"
+            @click="goProfile(item)"
+            @keydown.enter="goProfile(item)"
+            @keydown.space.prevent="goProfile(item)"
+          >
+            {{ item.name }}
+          </span>
 
-  <template #item.email="{ item }">
-    <span
-      role="link"
-      tabindex="0"
-      class="u-link"
-      @click="goProfile(item)"
-      @keydown.enter="goProfile(item)"
-      @keydown.space.prevent="goProfile(item)"
-    >
-      {{ item.email }}
-    </span>
-  </template>
+          <v-chip
+            v-if="!String((item as any)?.profile?.phone_number ?? '').trim()"
+            size="x-small"
+            color="warning"
+            variant="tonal"
+          >
+            Profil eksik
+          </v-chip>
+        </div>
+      </template>
 
-  <template #item.role="{ item }">
-    <div class="d-flex flex-wrap ga-1 justify-end justify-sm-start">
-      <v-chip
-        v-for="r in (Array.isArray(item?.roles) ? item.roles : [])"
-        :key="String(r?.id ?? r?.name ?? r)"
-        size="x-small"
-        color="primary"
-        variant="tonal"
-      >
-        {{ r?.title ?? r?.name ?? r }}
-      </v-chip>
+      <template #item.email="{ item }">
+        <span
+          role="link"
+          tabindex="0"
+          class="u-link"
+          @click="goProfile(item)"
+          @keydown.enter="goProfile(item)"
+          @keydown.space.prevent="goProfile(item)"
+        >
+          {{ item.email }}
+        </span>
+      </template>
 
-      <span v-if="!Array.isArray(item?.roles) || item.roles.length === 0" class="text-caption opacity-70">
-        —
-      </span>
-    </div>
-  </template>
-</DataTable>
+      <template #item.role="{ item }">
+        <div class="d-flex flex-wrap ga-1 justify-end justify-sm-start">
+          <v-chip
+            v-for="r in Array.isArray(item?.roles) ? item.roles : []"
+            :key="String(r?.id ?? r?.name ?? r)"
+            size="x-small"
+            color="primary"
+            variant="tonal"
+          >
+            {{ r?.title ?? r?.name ?? r }}
+          </v-chip>
 
-
+          <span
+            v-if="!Array.isArray(item?.roles) || item.roles.length === 0"
+            class="text-caption opacity-70"
+          >
+            —
+          </span>
+        </div>
+      </template>
+    </DataTable>
   </div>
 </template>
 
@@ -206,4 +216,3 @@ onMounted(fetchUsers);
   text-underline-offset: 3px;
 }
 </style>
-

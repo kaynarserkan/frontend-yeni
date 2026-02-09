@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import { useAuthStore } from "@/core/auth/auth.store";
 import ProfilePageShell from "@/components/profile/ProfilePageShell.vue";
 import ProfileSidebarCard from "@/components/profile/ProfileSidebarCard.vue";
 import ProfileTabsNav from "@/components/profile/ProfileTabsNav.vue";
@@ -15,6 +16,7 @@ import {
 defineOptions({ name: "UserProfileLayout" });
 
 const route = useRoute();
+const auth = useAuthStore();
 
 const loading = ref(false);
 const user = ref<User | null>(null);
@@ -47,26 +49,26 @@ watch(
 
 const tabs = computed(() => {
   const id = route.params.id;
-  return [
+
+  const base = [
     {
       key: "overview",
       label: "Genel Bakış",
       icon: "mdi-account-box-outline",
       to: { name: "users-profile-account", params: { id } },
     },
-    {
+  ];
+
+  if (auth.isAdmin) {
+    base.push({
       key: "roles",
       label: "Roles & Permissions",
       icon: "mdi-shield-account",
       to: { name: "users-profile-roles-permissions", params: { id } },
-    },
-    {
-      key: "effective",
-      label: "Effective Permissions",
-      icon: "mdi-shield-check-outline",
-      to: { name: "users-profile-effective-permissions", params: { id } },
-    },
-  ];
+    });
+  }
+
+  return base;
 });
 
 const sidebarName = computed(() => user.value?.name ?? "");
