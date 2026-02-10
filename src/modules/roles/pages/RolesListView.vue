@@ -5,9 +5,9 @@
       :headers="headers"
       :items="roles"
       :loading="loading"
-      :show-add="true"
+      :show-add="canRolesCreate()"
       add-text="New Role"
-      :actions="rowActions"
+      :actions="rowActions()"
       @add="openCreate"
       @action="onRowAction"
     >
@@ -42,12 +42,19 @@
 import { onMounted, ref } from "vue";
 import DataTable from "@/components/datatable/DataTable.vue";
 import { useLayoutOverlayStore } from "@/core/layout/layoutOverlay.store";
+import { useAuthStore } from "@/core/auth/auth.store";
 import RoleUpsertPanel from "../components/RoleUpsertPanel.vue";
 import { deleteRole, listRoles, type Role } from "../services/role.api";
 
 defineOptions({ name: "RolesListView" });
 
 const overlay = useLayoutOverlayStore();
+const auth = useAuthStore();
+
+const canRolesRead = () => auth.canAny(["role.read", "roles.read"]);
+const canRolesCreate = () => auth.canAny(["role.create", "roles.create"]);
+const canRolesUpdate = () => auth.canAny(["role.update", "roles.update"]);
+const canRolesDelete = () => auth.canAny(["role.delete", "roles.delete"]);
 
 const roles = ref<Role[]>([]);
 const loading = ref(false);
@@ -66,12 +73,23 @@ const headers = [
   },
 ] as const;
 
-const rowActions = [
-  { key: "edit", label: "Edit" },
-  { key: "delete", label: "Delete", danger: true },
-] as const;
+const rowActions = () => {
+  const a: Array<{ key: string; label: string; danger?: boolean }> = [];
+
+  if (canRolesUpdate()) a.push({ key: "edit", label: "Edit" });
+  if (canRolesDelete())
+    a.push({ key: "delete", label: "Delete", danger: true });
+
+  return a;
+};
 
 const fetchRoles = async () => {
+  if (!canRolesRead()) {
+    roles.value = [];
+    err.value = "Bu sayfayı görüntülemek için yetkiniz yok (role.read).";
+    return;
+  }
+
   err.value = "";
   loading.value = true;
   try {

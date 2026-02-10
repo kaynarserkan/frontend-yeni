@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/core/auth/auth.store'
-import { useTenantStore } from '@/core/tenant/tenant.store'
-import { api } from '@/core/http/api.client'
+import { nextTick, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/core/auth/auth.store";
+import { useTenantStore } from "@/core/tenant/tenant.store";
+import { api } from "@/core/http/api.client";
 
-const router = useRouter()
-const auth = useAuthStore()
-const tenant = useTenantStore()
+const router = useRouter();
+const auth = useAuthStore();
+const tenant = useTenantStore();
 
-const tenantKey = ref(tenant.tenantKey)
-const email = ref('')
-const password = ref('')
-const isLoading = ref(false)
-const errorText = ref('')
+const tenantKey = ref(tenant.tenantKey);
+const email = ref("");
+const password = ref("");
+const isLoading = ref(false);
+const errorText = ref("");
 
-const emailField = ref<any>(null)
-const passwordField = ref<any>(null)
+const emailField = ref<any>(null);
+const passwordField = ref<any>(null);
 
 const extractToken = (payload: any): string => {
   return (
@@ -24,81 +24,81 @@ const extractToken = (payload: any): string => {
     payload?.data?.access_token ??
     payload?.token ??
     payload?.data?.token ??
-    ''
-  )
-}
+    ""
+  );
+};
 
 /**
  * Chrome/Edge autofill bazen input'u doldurur ama v-model tetiklemez.
  * Bu yüzden DOM'daki gerçek value'yu okuyup state'e yazarız.
  */
 const syncAutofillToModel = async () => {
-  await nextTick()
+  await nextTick();
 
   const read = (fieldRef: any) => {
-    const el: HTMLElement | null = fieldRef?.$el ?? fieldRef
-    const input = el?.querySelector?.('input') as HTMLInputElement | null
-    return (input?.value ?? '').toString()
-  }
+    const el: HTMLElement | null = fieldRef?.$el ?? fieldRef;
+    const input = el?.querySelector?.("input") as HTMLInputElement | null;
+    return (input?.value ?? "").toString();
+  };
 
-  const e = read(emailField.value)
-  const p = read(passwordField.value)
+  const e = read(emailField.value);
+  const p = read(passwordField.value);
 
-  if (e && !email.value)
-    email.value = e
+  if (e && !email.value) email.value = e;
 
-  if (p && !password.value)
-    password.value = p
-}
+  if (p && !password.value) password.value = p;
+};
 
 onMounted(() => {
   // Autofill genelde mount'tan biraz sonra gelir
-  setTimeout(() => { syncAutofillToModel() }, 60)
-  setTimeout(() => { syncAutofillToModel() }, 250)
-})
+  setTimeout(() => {
+    syncAutofillToModel();
+  }, 60);
+  setTimeout(() => {
+    syncAutofillToModel();
+  }, 250);
+});
 
 const onSubmit = async () => {
-  if (isLoading.value)
-    return
+  if (isLoading.value) return;
 
-  errorText.value = ''
-  isLoading.value = true
+  errorText.value = "";
+  isLoading.value = true;
 
   try {
-    tenant.setTenant((tenantKey.value ?? '').trim())
+    tenant.setTenant((tenantKey.value ?? "").trim());
 
     if (!tenant.tenantKey) {
-      errorText.value = 'Tenant bilgisi boş olamaz.'
-      return
+      errorText.value = "Tenant bilgisi boş olamaz.";
+      return;
     }
 
-    const res = await api.post('/auth-service/login', {
+    const res = await api.post("/auth-service/login", {
       email: email.value,
       password: password.value,
-    })
+    });
 
-    const token = extractToken(res.data)
+    const token = extractToken(res.data);
 
     if (!token) {
-      errorText.value = 'Login başarılı görünüyor ama token bulunamadı.'
-      return
+      errorText.value = "Login başarılı görünüyor ama token bulunamadı.";
+      return;
     }
 
-    auth.setToken(token)
-    await router.push({ name: 'dashboard' })
-  }
-  catch (e: any) {
+    // ✅ login response'u (token + user) komple işle
+    await auth.setAuth(res.data);
+
+    await router.push({ name: "dashboard" });
+  } catch (e: any) {
     errorText.value =
       e?.response?.data?.message ??
       e?.message ??
-      'Login sırasında hata oluştu.'
+      "Login sırasında hata oluştu.";
+  } finally {
+    isLoading.value = false;
   }
-  finally {
-    isLoading.value = false
-  }
-}
+};
 </script>
-
 
 <template>
   <div class="login-page">
@@ -126,33 +126,20 @@ const onSubmit = async () => {
                 <v-img src="https://placehold.co/80x80?text=CRM" />
               </v-avatar>
               <div>
-                <div class="brand-title">
-                  Pure CRM
-                </div>
-                <div class="brand-subtitle">
-                  Admin Panel
-                </div>
+                <div class="brand-title">Pure CRM</div>
+                <div class="brand-subtitle">Admin Panel</div>
               </div>
             </div>
 
-            <div class="headline">
-              Welcome back
-            </div>
-            <div class="subline mb-6">
-              Lütfen giriş bilgilerinizi girin
-            </div>
+            <div class="headline">Welcome back</div>
+            <div class="subline mb-6">Lütfen giriş bilgilerinizi girin</div>
 
-            <v-alert
-              v-if="errorText"
-              type="error"
-              variant="tonal"
-              class="mb-4"
-            >
+            <v-alert v-if="errorText" type="error" variant="tonal" class="mb-4">
               {{ errorText }}
             </v-alert>
 
             <v-form @submit.prevent="onSubmit">
-                         <v-text-field
+              <v-text-field
                 v-model="tenantKey"
                 label="Tenant"
                 hint="Örn: reginamed"
@@ -165,38 +152,37 @@ const onSubmit = async () => {
                 class="mb-4"
               />
 
-                <!-- E-mail -->
+              <!-- E-mail -->
 
-<v-text-field
-  v-model="email"
-  placeholder="E-mail adresiniz"
-  type="email"
-  name="email"
-  autocomplete="username"
-  prepend-inner-icon="mdi-email-outline"
-  variant="outlined"
-  bg-color="surface"
-  color="primary"
-  hide-details="auto"
-  class="mb-4"
-/>
+              <v-text-field
+                v-model="email"
+                placeholder="E-mail adresiniz"
+                type="email"
+                name="email"
+                autocomplete="username"
+                prepend-inner-icon="mdi-email-outline"
+                variant="outlined"
+                bg-color="surface"
+                color="primary"
+                hide-details="auto"
+                class="mb-4"
+              />
 
-<!-- Password -->
+              <!-- Password -->
 
-<v-text-field
-  v-model="password"
-  placeholder="Şifreniz"
-  type="password"
-  name="password"
-  autocomplete="current-password"
-  prepend-inner-icon="mdi-lock-outline"
-  variant="outlined"
-  bg-color="surface"
-  color="primary"
-  hide-details="auto"
-  class="mb-6"
-/>
-
+              <v-text-field
+                v-model="password"
+                placeholder="Şifreniz"
+                type="password"
+                name="password"
+                autocomplete="current-password"
+                prepend-inner-icon="mdi-lock-outline"
+                variant="outlined"
+                bg-color="surface"
+                color="primary"
+                hide-details="auto"
+                class="mb-6"
+              />
 
               <v-btn
                 type="submit"
@@ -215,9 +201,7 @@ const onSubmit = async () => {
         <v-col cols="12" md="7" class="d-none d-md-flex hero-col">
           <div class="hero">
             <div class="hero-overlay">
-              <div class="hero-title">
-                Bring your ideas to life
-              </div>
+              <div class="hero-title">Bring your ideas to life</div>
               <div class="hero-subtitle">
                 Çok kiracılı, güvenli ve hızlı CRM paneli
               </div>
@@ -286,7 +270,7 @@ const onSubmit = async () => {
   min-height: 100vh;
   background-image:
     linear-gradient(120deg, rgba(6, 30, 41, 0.65), rgba(29, 84, 109, 0.25)),
-    url('https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e');
+    url("https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e");
   background-size: cover;
   background-position: center;
   position: relative;
@@ -320,8 +304,8 @@ const onSubmit = async () => {
 .mobile-hero {
   height: 220px;
   background-image:
-    linear-gradient(120deg, rgba(6, 30, 41, 0.70), rgba(95, 149, 152, 0.20)),
-    url('https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e');
+    linear-gradient(120deg, rgba(6, 30, 41, 0.7), rgba(95, 149, 152, 0.2)),
+    url("https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e");
   background-size: cover;
   background-position: center;
   position: relative;

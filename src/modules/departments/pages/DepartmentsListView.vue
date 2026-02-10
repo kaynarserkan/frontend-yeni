@@ -8,11 +8,11 @@
       :items-per-page="10"
       empty-text="No departments found"
       search-label="Search departments"
-      show-add
+      :show-add="canDepartmentsCreate()"
       add-text="Add Department"
       :actions="rowActions"
       actions-key="actions"
-      show-edit-icon
+      :show-edit-icon="canDepartmentsUpdate()"
       @add="onAdd"
       @edit="onEdit"
       @action="onRowAction"
@@ -54,6 +54,7 @@
 import { onMounted, ref } from "vue";
 import DataTable from "@/components/datatable/DataTable.vue";
 import { useLayoutOverlayStore } from "@/core/layout/layoutOverlay.store";
+import { useAuthStore } from "@/core/auth/auth.store";
 import DepartmentForm from "@/modules/departments/components/DepartmentForm.vue";
 import {
   deleteDepartment,
@@ -70,6 +71,19 @@ type Header = {
 };
 
 const overlay = useLayoutOverlayStore();
+const auth = useAuthStore();
+
+const canDepartmentsRead = () =>
+  auth.canAny(["department.read", "departments.read"]);
+
+const canDepartmentsCreate = () =>
+  auth.canAny(["department.create", "departments.create"]);
+
+const canDepartmentsUpdate = () =>
+  auth.canAny(["department.update", "departments.update"]);
+
+const canDepartmentsDelete = () =>
+  auth.canAny(["department.delete", "departments.delete"]);
 
 const loading = ref(false);
 const items = ref<Department[]>([]);
@@ -84,9 +98,19 @@ const headers = ref<Header[]>([
   { title: "", key: "actions", align: "end", width: 80 },
 ]);
 
-const rowActions = ref([{ key: "delete", label: "Delete", danger: true }]);
+const rowActions = ref(
+  canDepartmentsDelete()
+    ? [{ key: "delete", label: "Delete", danger: true }]
+    : [],
+);
 
 const load = async () => {
+  if (!canDepartmentsRead()) {
+    items.value = [];
+    loading.value = false;
+    return;
+  }
+
   loading.value = true;
   try {
     items.value = await listDepartments();

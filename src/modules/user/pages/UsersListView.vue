@@ -85,11 +85,26 @@ const removeUser = async (u: User) => {
   }
 };
 
-const rowActions = [
-  { key: "view", label: "View" },
-  { key: "edit", label: "Edit" },
-  { key: "delete", label: "Delete", danger: true },
-] as const;
+import { useAuthStore } from "@/core/auth/auth.store";
+
+const auth = useAuthStore();
+
+const canUsersRead = () => auth.canAny(["user.read", "users.read"]);
+const canUsersCreate = () => auth.canAny(["user.create", "users.create"]);
+const canUsersUpdate = () => auth.canAny(["user.update", "users.update"]);
+const canUsersDelete = () => auth.canAny(["user.delete", "users.delete"]);
+
+const rowActions = () => {
+  const a: Array<{ key: string; label: string; danger?: boolean }> = [
+    { key: "view", label: "View" },
+  ];
+
+  if (canUsersUpdate()) a.push({ key: "edit", label: "Edit" });
+  if (canUsersDelete())
+    a.push({ key: "delete", label: "Delete", danger: true });
+
+  return a;
+};
 
 const onRowAction = (payload: { key: string; item: User }) => {
   if (payload.key === "view") {
@@ -107,6 +122,13 @@ const onRowAction = (payload: { key: string; item: User }) => {
 };
 
 const fetchUsers = async () => {
+  // ✅ read yoksa: listeyi göstermeyelim
+  if (!canUsersRead()) {
+    items.value = [];
+    errorText.value = "Bu sayfayı görüntülemek için yetkiniz yok (user.read).";
+    return;
+  }
+
   loading.value = true;
   errorText.value = "";
 
@@ -138,11 +160,11 @@ onMounted(fetchUsers);
       :loading="loading"
       v-model:searchModelValue="searchModelValue"
       search-label="Search user"
-      :show-add="true"
+      :show-add="canUsersCreate()"
       add-text="New User"
       :show-export="false"
       empty-text="No users found"
-      :actions="rowActions"
+      :actions="rowActions()"
       @add="openCreate"
       @action="onRowAction"
     >

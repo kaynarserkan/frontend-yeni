@@ -12,25 +12,39 @@ import {
 const normalizeUser = (raw: any): any | null => {
   if (!raw) return null;
 
-  // string gelirse parse etmeyi dene
+  // ✅ bazı backendler: { data: ... }
+  if (raw && typeof raw === "object" && "data" in raw) {
+    raw = (raw as any).data;
+  }
+
+  // ✅ bazı backendler: { status, message, user: "..." } veya { user: {...} }
+  if (raw && typeof raw === "object" && "user" in raw) {
+    raw = (raw as any).user;
+  }
+
+  // ✅ string gelirse parse etmeyi dene
   if (typeof raw === "string") {
-    try {
-      raw = JSON.parse(raw);
-    } catch {
+    const s = raw.trim();
+
+    // JSON string ise parse
+    if (s.startsWith("{") || s.startsWith("[")) {
+      try {
+        raw = JSON.parse(s);
+      } catch {
+        return null;
+      }
+    } else {
+      // sadece id geldiyse (örn "12") → enrich edebilmek için id objesi üret
+      if (/^\d+$/.test(s)) {
+        return { id: Number(s) };
+      }
       return null;
     }
   }
 
-  // bazı backendler { data: user } döndürebilir
-  if (raw && typeof raw === "object" && "data" in raw) {
-    const d = (raw as any).data;
-    if (d && typeof d === "object") raw = d;
-  }
-
-  // senin mevcut formatın: { user: {...} }
+  // ✅ bazı yerlerde { user: {...} } nested gelebilir (2. kez)
   if (raw && typeof raw === "object" && "user" in raw) {
-    const u = (raw as any).user;
-    if (u && typeof u === "object") raw = u;
+    raw = (raw as any).user;
   }
 
   return raw && typeof raw === "object" ? raw : null;
@@ -39,6 +53,52 @@ const normalizeUser = (raw: any): any | null => {
 const hasNonEmptyRoles = (u: any): boolean => {
   const roles = (u as any)?.roles;
   return Array.isArray(roles) && roles.length > 0;
+};
+
+const rolesHavePermissionsLoaded = (u: any): boolean => {
+  const user = normalizeUser(u);
+  if (!user) return false;
+
+  const roles = Array.isArray((user as any)?.roles) ? (user as any).roles : [];
+  if (!roles.length) return false;
+
+  // role.permissions array'ı yoksa (veya array değilse) → permissions yüklenmemiş demektir
+  return roles.every((r: any) => Array.isArray(r?.permissions));
+};
+
+const normalizePermName = (v: any): string => {
+  const s = String(v ?? "").trim();
+  return s ? s.toLowerCase() : "";
+};
+
+const collectEffectivePermissions = (u: any): string[] => {
+  const user = normalizeUser(u);
+  if (!user) return [];
+
+  const set = new Set<string>();
+
+  // direct permissions: user.permissions
+  const direct = Array.isArray((user as any)?.permissions)
+    ? (user as any).permissions
+    : [];
+  for (const p of direct) {
+    const name = normalizePermName((p as any)?.name ?? p);
+    if (name) set.add(name);
+  }
+
+  // role permissions: user.roles[].permissions
+  const roles = Array.isArray((user as any)?.roles) ? (user as any).roles : [];
+  for (const r of roles) {
+    const perms = Array.isArray((r as any)?.permissions)
+      ? (r as any).permissions
+      : [];
+    for (const p of perms) {
+      const name = normalizePermName((p as any)?.name ?? p);
+      if (name) set.add(name);
+    }
+  }
+
+  return Array.from(set);
 };
 
 export const useAuthStore = defineStore("auth", {
@@ -61,6 +121,35 @@ export const useAuthStore = defineStore("auth", {
       const n = (u?.name ?? u?.username ?? u?.email ?? "").toString().trim();
       return n ? n.charAt(0).toUpperCase() : "U";
     },
+
+    // ✅ effective permissions (direct + role permissions)
+    effectivePermissions: (state): string[] => {
+      return collectEffectivePermissions(state.user);
+    },
+
+    // ✅ permission helpers
+    can:
+      (state) =>
+      (perm: string): boolean => {
+        const want = normalizePermName(perm);
+        if (!want) return false;
+        const perms = collectEffectivePermissions(state.user);
+        return perms.includes(want);
+      },
+
+    canAny:
+      (state) =>
+      (perms: string[]): boolean => {
+        const list = Array.isArray(perms) ? perms : [];
+        if (!list.length) return false;
+
+        const have = new Set(collectEffectivePermissions(state.user));
+        for (const p of list) {
+          const want = normalizePermName(p);
+          if (want && have.has(want)) return true;
+        }
+        return false;
+      },
 
     // basit admin check (role name'e göre)
     // backend’de rol isimleri TR/EN olabilir: "admin", "Administrator", "Yönetici" vb.
@@ -97,20 +186,79 @@ export const useAuthStore = defineStore("auth", {
       setAuthUser(u);
     },
 
+    // ✅ User.roles var ama role.permissions yoksa -> /user-service/roles ile zenginleştir
+    async enrichUserRolePermissions(user: any) {
+      const u = normalizeUser(user);
+      if (!u) return null;
+
+      const roles = Array.isArray((u as any)?.roles) ? (u as any).roles : [];
+      if (!roles.length) return u;
+
+      // ✅ burada kullanıyoruz -> TS 6133 kalkar
+      if (rolesHavePermissionsLoaded(u)) return u;
+
+      try {
+        const res = await api.get("/user-service/roles");
+        const rows = (res as any)?.data?.data ?? (res as any)?.data ?? [];
+        const allRoles = Array.isArray(rows) ? rows : [];
+
+        const byId = new Map<number, any>();
+        const byName = new Map<string, any>();
+
+        for (const r of allRoles) {
+          const id = Number((r as any)?.id ?? 0);
+          if (id) byId.set(id, r);
+
+          const name = String((r as any)?.name ?? "")
+            .trim()
+            .toLowerCase();
+          if (name) byName.set(name, r);
+        }
+
+        const mergedRoles = roles.map((r: any) => {
+          if (Array.isArray(r?.permissions)) return r;
+
+          const rid = Number(r?.id ?? 0);
+          const rname = String(r?.name ?? "")
+            .trim()
+            .toLowerCase();
+
+          const full =
+            (rid && byId.get(rid)) || (rname && byName.get(rname)) || null;
+
+          if (full && Array.isArray((full as any)?.permissions)) {
+            return { ...r, permissions: (full as any).permissions };
+          }
+
+          // deterministik olsun
+          return { ...r, permissions: [] };
+        });
+
+        return { ...u, roles: mergedRoles };
+      } catch {
+        return u;
+      }
+    },
+
     // ✅ Token varsa "me" endpoint'inden user'ı çekip store+storage'a yazar
     // ✅ Eğer me response'unda roles yoksa: /user-service/users/{id} ile zenginleştirir
+    // ✅ roles var ama role.permissions yoksa: /user-service/roles ile zenginleştirir
     async fetchMe() {
       if (!this.accessToken) return;
 
-      // user var ama roles boşsa gene de enrich et
       const existing = normalizeUser(this.user);
-      if (existing && hasNonEmptyRoles(existing)) return;
 
-      // OpenAPI'de kesin olan endpoint:
-      // /auth-service/me
+      // ✅ roles+permissions zaten tam ise çık
+      if (
+        existing &&
+        hasNonEmptyRoles(existing) &&
+        rolesHavePermissionsLoaded(existing)
+      ) {
+        return;
+      }
+
       const endpoints = [
         "/auth-service/me",
-        // olası alternatifler (boş geçersek bir şey kaybetmeyiz)
         "/auth/me",
         "/me",
         "/user-service/me",
@@ -120,7 +268,7 @@ export const useAuthStore = defineStore("auth", {
       for (const url of endpoints) {
         try {
           const res = await api.get(url);
-          const baseUser = normalizeUser(res?.data);
+          const baseUser = normalizeUser(res?.data?.user ?? res?.data);
 
           if (baseUser && typeof baseUser === "object") {
             // roles yoksa: user-service'den full user çek
@@ -130,16 +278,21 @@ export const useAuthStore = defineStore("auth", {
                   `/user-service/users/${(baseUser as any).id}`,
                 );
                 const fullUser = normalizeUser(resFull?.data);
+
                 if (fullUser) {
-                  this.setUser(fullUser);
+                  const enriched =
+                    await this.enrichUserRolePermissions(fullUser);
+                  this.setUser(enriched ?? fullUser);
                   return;
                 }
               } catch {
-                // enrich başarısızsa base user ile devam
+                // ignore
               }
             }
 
-            this.setUser(baseUser);
+            // roles var ama permissions eksik olabilir -> enrich dene
+            const enriched = await this.enrichUserRolePermissions(baseUser);
+            this.setUser(enriched ?? baseUser);
             return;
           }
         } catch {
@@ -165,9 +318,11 @@ export const useAuthStore = defineStore("auth", {
       if (t) this.setToken(t);
 
       if (payload && "user" in payload) {
-        this.setUser((payload as any).user);
+        const enriched = await this.enrichUserRolePermissions(
+          (payload as any).user,
+        );
+        this.setUser(enriched ?? (payload as any).user);
       } else {
-        // token var ama user yoksa: me'yi çek
         await this.fetchMe();
       }
     },

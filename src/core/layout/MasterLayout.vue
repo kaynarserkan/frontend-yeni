@@ -29,7 +29,11 @@
                 Dashboard
               </RouterLink>
 
-              <v-menu v-if="auth.isAdmin" location="bottom start" offset="6">
+              <v-menu
+                v-if="canSeeAdministration"
+                location="bottom start"
+                offset="6"
+              >
                 <template #activator="{ props: menuProps }">
                   <v-btn
                     v-bind="menuProps"
@@ -44,16 +48,19 @@
 
                 <v-list density="comfortable" min-width="240">
                   <v-list-item
+                    v-if="canDepartmentsRead"
                     :to="{ name: 'departments-list' }"
                     title="Departments"
                     subtitle="Organization structure"
                   />
                   <v-list-item
+                    v-if="canRolesRead"
                     :to="{ name: 'roles-list' }"
                     title="Roles & Permissions"
                     subtitle="Access control"
                   />
                   <v-list-item
+                    v-if="canUsersRead"
                     :to="{ name: 'users-list' }"
                     title="Users"
                     subtitle="User management"
@@ -278,6 +285,19 @@ const isAdminActive = () => {
 // Right user menu (reactive)
 const username = computed(() => auth.displayName);
 const userInitial = computed(() => auth.userInitial);
+
+// ✅ Menü görünürlüğü: admin rolü değil, read permission bazlı
+const canDepartmentsRead = computed(() =>
+  auth.canAny(["department.read", "departments.read"]),
+);
+
+const canRolesRead = computed(() => auth.canAny(["role.read", "roles.read"]));
+
+const canUsersRead = computed(() => auth.canAny(["user.read", "users.read"]));
+
+const canSeeAdministration = computed(
+  () => canDepartmentsRead.value || canRolesRead.value || canUsersRead.value,
+);
 
 // ✅ token var ama user yoksa: açılışta me'yi çek
 onMounted(async () => {
